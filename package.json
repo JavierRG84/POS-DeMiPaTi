@@ -1,0 +1,16 @@
+{
+  "name": "demipati-pos-offline",
+  "version": "1.0.0",
+  "description": "APK del POS Offline de De Mi Pa' Ti (empaquetado con Capacitor)",
+  "scripts": {
+    "sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

@@ -1,0 +1,127 @@
+/* ============================================================
+   Tema POS — De Mi Pa' Ti
+   Paleta extraída del logo (azul y rojo) en tonos claros/vibrantes
+   ============================================================ */
+
+:root {
+  /* Azul */
+  --pos-blue: #3B4FD6;
+  --pos-blue-dark: #2D328E;
+  --pos-blue-light: #EEF1FF;
+
+  /* Rojo */
+  --pos-red: #F03A47;
+  --pos-red-dark: #D21E24;
+  --pos-red-light: #FFEDEE;
+
+  /* Blanco / neutros */
+  --pos-white: #FFFFFF;
+  --pos-bg: #F8F9FE;
+  --pos-text: #1E2140;
+  --pos-text-soft: #5B5F82;
+  --pos-border: #E3E6F5;
+
+  /* Bordes redondeados — usar en TODO: botones, cards, inputs, modales */
+  --pos-radius-sm: 8px;   /* inputs pequeños, chips */
+  --pos-radius: 14px;     /* botones, cards, filas de producto */
+  --pos-radius-lg: 22px;  /* modales, paneles grandes */
+}
+
+/* Base */
+body {
+  background: var(--pos-bg);
+  color: var(--pos-text);
+}
+
+/* Botones */
+button,
+.btn {
+  border-radius: var(--pos-radius);
+  border: none;
+  font-weight: 600;
+}
+
+.btn-primary,
+button.primary {
+  background: var(--pos-blue);
+  color: var(--pos-white);
+}
+.btn-primary:active { background: var(--pos-blue-dark); }
+
+.btn-danger,
+button.danger,
+.btn-eliminar {
+  background: var(--pos-red);
+  color: var(--pos-white);
+}
+.btn-danger:active { background: var(--pos-red-dark); }
+
+.btn-secondary,
+button.secondary {
+  background: var(--pos-white);
+  color: var(--pos-blue);
+  border: 1px solid var(--pos-blue-light);
+}
+
+/* Cards / filas de producto / tickets */
+.card,
+.producto-card,
+.ticket,
+.item-carrito {
+  background: var(--pos-white);
+  border-radius: var(--pos-radius);
+  border: 1px solid var(--pos-border);
+}
+
+/* Inputs y buscadores */
+input,
+select,
+textarea {
+  border-radius: var(--pos-radius-sm);
+  border: 1px solid var(--pos-border);
+  background: var(--pos-white);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--pos-blue);
+  outline: none;
+}
+
+/* Modales / menú lateral / paneles */
+.modal,
+.menu-panel,
+.overlay-content,
+.carrito-panel {
+  background: var(--pos-white);
+  border-radius: var(--pos-radius-lg);
+}
+
+/* Encabezado / barra superior */
+.header,
+.topbar,
+.navbar {
+  background: var(--pos-blue);
+  color: var(--pos-white);
+  border-radius: 0 0 var(--pos-radius-lg) var(--pos-radius-lg);
+}
+
+/* Badges de estado / totales destacados */
+.badge,
+.total-destacado {
+  background: var(--pos-red-light);
+  color: var(--pos-red-dark);
+  border-radius: var(--pos-radius-sm);
+  font-weight: 700;
+}
+
+.badge-ok {
+  background: var(--pos-blue-light);
+  color: var(--pos-blue-dark);
+}
+
+/* Imágenes de producto */
+img,
+.producto-imagen {
+  border-radius: var(--pos-radius-sm);
+}

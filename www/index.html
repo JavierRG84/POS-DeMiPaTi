@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>DemipatiPOS Offline</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1a3a8f;--navy-dark:#0a1228;--navy-light:#2952c4;
+  --red:#cc2936;--green:#16a34a;--yellow:#f0c040;
+  --white:#fff;--gray:#6b7280;--bg:#eef2f7;--border:#e5e7eb;
+}
+body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.pos-header{background:var(--navy-dark);color:white;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:44px;}
+.pos-header h1{font-size:14px;font-weight:700;line-height:1.2;}
+.pos-header .sub{font-size:11px;opacity:0.6;}
+.header-right{display:flex;gap:6px;align-items:center;}
+.btn-term{border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.12);color:white;transition:background 0.15s;}
+.btn-term:hover{background:rgba(255,255,255,0.25);}
+.btn-term.active{background:rgba(255,255,255,0.3);outline:1px solid rgba(255,255,255,0.4);}
+.btn-salir{background:var(--red)!important;}
+.pos-body{display:flex;flex:1;overflow:hidden;gap:0;}
+.area-izquierda{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:2px solid var(--border);min-width:0;min-height:0;}
+.fila-cats{display:flex;flex-direction:row;height:50%;border-bottom:2px solid var(--border);overflow:hidden;min-height:0;}
+.panel-productos-area{height:50%;display:flex;flex-direction:column;overflow:hidden;background:white;min-height:0;}
+.panel-cats{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);background:white;flex:1;min-width:0;min-height:0;}
+.panel-cats:last-child{border-right:none;}
+.panel-title{background:var(--navy);color:white;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;}
+.cat-grid{display:flex;flex-direction:column;gap:5px;padding:6px;overflow-y:auto;flex:1;min-height:0;}
+.cat-card{border-radius:8px;padding:10px 8px;cursor:pointer;background:linear-gradient(145deg,#ffffff,#e8ecf4);border:1px solid #d1d9e6;box-shadow:2px 2px 5px rgba(0,0,0,0.08),-1px -1px 3px rgba(255,255,255,0.8);transition:all 0.15s;text-align:center;}
+.cat-card:hover{background:linear-gradient(145deg,#e8edff,#d0d8f0);border-color:#a0aec0;box-shadow:3px 3px 8px rgba(0,0,0,0.12),-1px -1px 3px rgba(255,255,255,0.9);transform:translateY(-1px);}
+.cat-card.active{background:linear-gradient(145deg,#2952c4,#1a3a8f);border-color:#1a3a8f;color:white;box-shadow:inset 2px 2px 4px rgba(0,0,0,0.2),inset -1px -1px 2px rgba(255,255,255,0.1);transform:translateY(0);}
+.cat-card-name{font-size:11px;font-weight:600;line-height:1.3;color:inherit;}
+.cat-card.active .cat-card-name{color:white;}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:8px;overflow-y:auto;flex:1;align-content:start;min-height:0;}
+.prod-empty{text-align:center;color:var(--gray);padding:2rem;font-size:13px;grid-column:1/-1;}
+.prod-card{border-radius:10px;cursor:pointer;overflow:hidden;background:linear-gradient(145deg,#ffffff,#eef1f8);border:1px solid #d1d9e6;box-shadow:3px 3px 7px rgba(0,0,0,0.1),-2px -2px 5px rgba(255,255,255,0.9);transition:all 0.15s;}
+.prod-card:hover{box-shadow:5px 5px 12px rgba(0,0,0,0.15),-2px -2px 5px rgba(255,255,255,0.9);transform:translateY(-2px);border-color:#a0aec0;}
+.prod-card:active{transform:scale(0.97);box-shadow:inset 2px 2px 5px rgba(0,0,0,0.1);}
+.prod-card.prod-sin-stock{filter:grayscale(100%);opacity:0.5;cursor:not-allowed;}
+.prod-card.prod-sin-stock:hover{transform:none;box-shadow:3px 3px 7px rgba(0,0,0,0.1),-2px -2px 5px rgba(255,255,255,0.9);border-color:#d1d9e6;}
+.prod-img{width:100%;height:80px;object-fit:cover;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.prod-img img{width:100%;height:80px;object-fit:cover;}
+.prod-info{padding:6px 7px;}
+.prod-name{font-size:10px;font-weight:700;color:#1a2a5e;line-height:1.3;margin-bottom:3px;}
+.prod-price{font-size:13px;font-weight:800;color:var(--navy);}
+.prod-agotado{font-size:9px;color:#cc2936;font-weight:700;text-transform:uppercase;margin-top:2px;}
+.panel-carrito{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:white;border-left:2px solid var(--border);}
+.carrito-header{padding:8px 12px;background:var(--navy);color:white;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+.carrito-items{flex:1;overflow-y:auto;padding:5px;}
+.carrito-empty{text-align:center;color:var(--gray);padding:1.5rem;font-size:12px;}
+.carrito-item{display:flex;align-items:center;gap:6px;padding:5px 3px;border-bottom:1px solid var(--border);}
+.ci-name{flex:1;font-size:11px;font-weight:600;color:#1a2a5e;line-height:1.3;}
+.ci-price{font-size:10px;color:var(--gray);}
+.ci-qty{display:flex;align-items:center;gap:3px;}
+.ci-qty button{width:20px;height:20px;border:none;border-radius:4px;background:var(--bg);cursor:pointer;font-size:13px;font-weight:700;color:var(--navy);display:flex;align-items:center;justify-content:center;}
+.ci-qty span{font-size:12px;font-weight:700;min-width:18px;text-align:center;}
+.ci-total{font-size:11px;font-weight:700;color:var(--navy);min-width:52px;text-align:right;}
+.ci-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:1px 3px;}
+.carrito-totales{padding:8px 12px;border-top:2px solid var(--border);background:#f9fafb;}
+.total-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--gray);}
+.total-row.main{font-size:15px;font-weight:700;color:#1a2a5e;padding-top:5px;border-top:1px solid var(--border);margin-top:3px;}
+.total-row.desc{color:var(--red);}
+.total-row.afil{color:var(--green);}
+.afil-section{padding:6px 10px;border-top:1px solid var(--border);background:#f0f4ff;}
+.afil-section label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray);display:block;margin-bottom:3px;}
+.afil-row{display:flex;gap:3px;}
+.afil-input{flex:1;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:11px;background:white;}
+.afil-input:focus{outline:none;border-color:var(--navy);}
+.btn-af{border:none;border-radius:5px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;}
+.btn-af-ok{background:var(--navy);color:white;}
+.btn-af-x{background:var(--red);color:white;}
+.afil-info{font-size:10px;margin-top:3px;min-height:14px;}
+.afil-info.ok{color:var(--green);}
+.afil-info.err{color:var(--red);}
+.metodos-pago{padding:4px 10px;border-top:1px solid var(--border);}
+.metodos-pago label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray);display:block;margin-bottom:4px;}
+.metodos-grid{display:flex;gap:3px;flex-wrap:wrap;}
+.btn-met{flex:1;min-width:60px;border:2px solid var(--border);border-radius:7px;padding:5px 3px;background:white;cursor:pointer;font-size:10px;font-weight:700;color:var(--gray);text-align:center;transition:all 0.15s;}
+.btn-met:hover{border-color:var(--navy);color:var(--navy);}
+.btn-met.sel{border-color:var(--navy);background:var(--navy);color:white;}
+.btn-met .met-desc{font-size:8px;font-weight:400;opacity:0.8;display:block;margin-top:1px;}
+.btn-cobrar{margin:6px 10px 8px;border:none;border-radius:9px;padding:12px;background:var(--green);color:white;font-size:15px;font-weight:800;cursor:pointer;width:calc(100% - 20px);transition:background 0.2s;}
+.btn-cobrar:hover{background:#15803d;}
+.btn-cobrar:disabled{background:var(--gray);cursor:not-allowed;}
+.btn-cobrar small{display:block;font-size:10px;font-weight:400;opacity:0.85;margin-top:1px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:14px;padding:1.4rem;width:90%;max-width:370px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.modal h3{color:#1a2a5e;margin-bottom:1rem;font-size:1.1rem;}
+.modal-row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;}
+.modal-row.mtotal{font-weight:700;font-size:17px;color:var(--navy);border-top:1px solid var(--border);padding-top:7px;margin-top:3px;}
+.modal-row.mdesc{color:var(--red);}
+.modal-btns{display:flex;gap:8px;margin-top:1rem;}
+.btn-confirmar{flex:1;background:var(--green);color:white;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-cancelar{flex:1;background:var(--bg);color:var(--gray);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;cursor:pointer;}
+.exito-icon{font-size:2.8rem;text-align:center;margin-bottom:.4rem;}
+
+/* PANTALLA DE INICIO */
+#pantalla-inicio{position:fixed;inset:0;background:var(--navy-dark);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;gap:20px;color:white;}
+#pantalla-inicio h1{font-size:28px;font-weight:800;}
+#pantalla-inicio p{font-size:14px;opacity:0.7;text-align:center;max-width:400px;}
+.setup-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;width:100%;max-width:400px;}
+.setup-input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 14px;color:white;font-size:14px;font-family:Arial;margin-bottom:10px;outline:none;}
+.setup-input::placeholder{color:rgba(255,255,255,0.4);}
+.setup-btn{width:100%;background:var(--green);color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;}
+.setup-btn:disabled{background:var(--gray);cursor:not-allowed;}
+.setup-msg{font-size:12px;text-align:center;min-height:16px;margin-top:8px;}
+
+/* ══ DESCUENTO ESPECIAL ══════════════════════════════════════ */
+.desc-esp-wrap{padding:4px 10px;border-top:1px solid var(--border);}
+.desc-esp-header{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray);margin-bottom:6px;}
+.desc-esp-controls{display:flex;align-items:center;gap:6px;}
+.desc-esp-btn{width:36px;height:36px;border:2px solid var(--navy);border-radius:6px;background:white;color:var(--navy);font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;}
+.desc-esp-btn:hover{background:var(--navy);color:white;border-color:var(--navy);}
+.desc-esp-display{flex:1;text-align:center;font-size:18px;font-weight:800;color:var(--red);min-width:50px;}
+.desc-esp-reset{font-size:10px;color:var(--gray);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;}
+/* ══ MOBILE ══════════════════════════════════════════════════ */
+.btn-vista{display:none;}
+@media(max-width:480px){
+  body{height:100dvh;overflow:hidden;}
+  .pos-header{padding:4px 8px;min-height:36px;overflow:hidden;}
+  .pos-header h1{font-size:12px;white-space:nowrap;}
+  .pos-header .sub{display:none;}
+  .pos-body{flex-direction:column;height:calc(100dvh - 36px);overflow:hidden;}
+  .area-izquierda{flex:1;overflow:hidden;border-right:none;display:flex;flex-direction:column;}
+  .fila-cats{height:45%!important;flex-direction:row!important;overflow-x:auto!important;overflow-y:hidden!important;flex-shrink:0;}
+  .fila-cats::-webkit-scrollbar{display:none;}
+  .panel-cats{min-width:28vw;flex-shrink:0;overflow-y:auto;}
+  .panel-title{font-size:10px!important;padding:5px 7px!important;}
+  .cat-card{padding:8px 5px!important;}
+  .cat-card-name{font-size:11px!important;}
+  .panel-productos-area{flex:1;height:auto!important;overflow:hidden;display:flex;flex-direction:column;}
+  .prod-grid{flex:1;grid-template-columns:repeat(3,1fr)!important;gap:4px;padding:4px;}
+  .prod-img{height:65px!important;}
+  .prod-img img{height:65px!important;}
+  .prod-name{font-size:9px!important;}
+  .prod-price{font-size:10px!important;}
+  .panel-carrito{width:100%!important;border-left:none!important;}
+  body.vista-productos .area-izquierda{display:flex!important;flex:1;flex-direction:column;}
+  body.vista-productos #panel-carrito{display:none!important;}
+  body.vista-carrito .area-izquierda{display:none!important;}
+  body.vista-carrito #panel-carrito{display:flex!important;flex:1;flex-direction:column;width:100%!important;}
+  .btn-vista{display:flex!important;width:100%;padding:12px;background:var(--navy);color:white;border:none;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;flex-shrink:0;position:sticky;bottom:0;z-index:10;}
+}
+.bv-badge{background:var(--red);border-radius:50%;min-width:20px;height:20px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;}
+
+@media(max-width:480px){
+  .desc-esp-wrap{padding:4px 8px;}
+  .desc-esp-display{font-size:16px;}
+  .desc-esp-btn{width:28px;height:28px;font-size:16px;}
+  .metodos-pago{padding:4px 8px;}
+  .metodos-grid{gap:3px;}
+  .btn-met{padding:6px 3px!important;font-size:10px!important;}
+  .carrito-items{max-height:25vh;}
+  .total-section{padding:4px 10px;}
+  .total-row{font-size:12px;padding:2px 0;}
+  .total-row.main{font-size:16px;}
+  .afil-section{padding:4px 10px;}
+}
+</style>
+</head>
+<body class="vista-productos">
+
+<!-- PANTALLA DE INICIO / CONFIGURACION -->
+<div id="pantalla-inicio">
+  <h1>🖥 DemipatiPOS</h1>
+  <div class="setup-card">
+    <div id="setup-form">
+      <p style="font-size:13px;opacity:0.8;margin-bottom:14px;text-align:center;">Primera vez o actualizar datos — conecta con Dolibarr</p>
+      <input type="text" class="setup-input" id="setup-url" placeholder="URL del servidor (ej: https://www.demipati.cu)" value="https://www.demipati.cu">
+      <input type="number" class="setup-input" id="setup-terminal" placeholder="Numero de terminal (ej: 2)" min="1" max="99">
+      <input type="text" class="setup-input" id="setup-login" placeholder="Usuario (login de Dolibarr)">
+      <input type="password" class="setup-input" id="setup-pass" placeholder="Contraseña de Dolibarr">
+      <button class="setup-btn" id="btn-conectar" onclick="conectarServidor()">🔗 Conectar y Descargar Datos</button>
+      <div class="setup-msg" id="setup-msg"></div>
+      <div style="text-align:center;margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button onclick="usarDatosLocales()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;text-decoration:underline;">Continuar con datos guardados</button>
+        <label style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;color:rgba(255,255,255,0.8);">
+          📥 Importar datos desde archivo (sin conexion)
+          <input type="file" accept=".json" onchange="importarDatos(this)" style="display:none;">
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="pos-header">
+  <div>
+    <h1 id="pos-titulo">DemipatiPOS Offline</h1>
+    <div class="sub" id="pos-datetime"></div>
+  </div>
+  <div class="header-right">
+    <div id="sync-indicator" style="display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,0.1);">
+      <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+      <span id="sync-label">Offline</span>
+    </div>
+    <div style="position:relative;">
+      <button onclick="toggleMenuMas(event)" style="background:rgba(255,255,255,0.12);border:none;color:white;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">☰</button>
+      <div id="menu-mas" style="display:none;position:fixed;top:44px;right:8px;background:#1a2a5e;border:1px solid rgba(255,255,255,0.15);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:9999;min-width:220px;overflow:hidden;">
+        <button id="btn-sync" onclick="sincronizarAhora();toggleMenuMas()" style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">↻ Sincronizar</button>
+        <div style="border-top:1px solid rgba(255,255,255,0.15);margin:2px 0;"></div>
+        <button onclick="abrirHistorial();toggleMenuMas()" style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">📋 Historial del dia</button>
+        <button onclick="exportarReporte();toggleMenuMas()" style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">📊 Reporte Excel</button>
+        <button onclick="exportarVentas();toggleMenuMas()" style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">📤 Exportar ventas</button>
+        <label style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">📥 Importar ventas<input type="file" accept=".json" onchange="importarVentas(this);toggleMenuMas()" style="display:none;"></label>
+        <button onclick="exportarDatos();toggleMenuMas()" style="display:block;width:100%;text-align:left;background:none;border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);">📦 Exportar datos completos</button>
+        <div style="border-top:1px solid rgba(255,255,255,0.15);margin:2px 0;"></div>
+        <button onclick="cerrarPOS()" style="display:block;width:100%;text-align:left;background:rgba(204,41,54,0.3);border:none;color:white;padding:10px 14px;font-size:12px;cursor:pointer;">✕ Salir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="pos-body">
+  <div class="area-izquierda">
+    <div class="fila-cats">
+      <div class="panel-cats">
+        <div class="panel-title">Categoria</div>
+        <div class="cat-grid" id="grid-l1"><div class="prod-empty">Cargando...</div></div>
+      </div>
+      <div class="panel-cats">
+        <div class="panel-title">Subcategoria</div>
+        <div class="cat-grid" id="grid-l2"><div style="text-align:center;color:var(--gray);padding:1rem;font-size:11px;">Selecciona una categoria</div></div>
+      </div>
+      <div class="panel-cats">
+        <div class="panel-title" id="panel-l3-title">Nivel 3</div>
+        <div class="cat-grid" id="grid-l3"><div style="text-align:center;color:var(--gray);padding:1rem;font-size:11px;">Selecciona una subcategoria</div></div>
+      </div>
+    </div>
+    <div class="panel-productos-area">
+      <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+        <span>Productos</span>
+        <input type="text" id="buscar-prod" placeholder="Buscar..."
+          style="margin-left:auto;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.15);color:white;width:140px;"
+          oninput="filtrarProds(this.value)">
+      </div>
+      <div class="prod-grid" id="grid-prods"><div class="prod-empty">Selecciona una categoria</div></div>
+      <button class="btn-vista" onclick="toggleVista()"><span id="bv-label">🛒 Ver Carrito</span><span class="bv-badge" id="bv-badge">0</span></button>
+    </div>
+  </div>
+
+  <!-- CARRITO -->
+  <div class="panel-carrito" id="panel-carrito">
+    <div class="carrito-header">
+      <span>Carrito</span>
+      <button style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:11px;" onclick="limpiarCarrito()">Vaciar</button>
+    </div>
+    <div id="carrito-items" class="carrito-items">
+      <div class="carrito-empty">El carrito esta vacio</div>
+    </div>
+    <div class="carrito-totales">
+      <div class="total-row"><span>Subtotal</span><span id="tot-sub">0.00 CUP</span></div>
+      <div class="total-row desc" id="row-desc" style="display:none"><span id="lbl-desc">Descuento</span><span id="tot-desc">0.00 CUP</span></div>
+
+      <div class="total-row afil" id="row-afil" style="display:none"><span>Credito afiliado</span><span id="tot-afil">-0.00 CUP</span></div>
+      <div class="total-row" id="row-desc-esp" style="display:none;color:var(--red);">
+    <span id="lbl-desc-esp">Desc. especial (0%)</span>
+    <span id="tot-desc-esp">0.00 CUP</span>
+  </div>
+  <div class="total-row main"><span>TOTAL</span><span id="tot-total">0.00 CUP</span></div>
+    </div>
+
+    <div class="afil-section">
+      <label>Afiliado (opcional)</label>
+      <div class="afil-row">
+        <input type="text" class="afil-input" id="af-codigo" placeholder="Codigo DMP o email">
+        <input type="password" class="afil-input" id="af-pin" placeholder="PIN" style="max-width:60px;">
+        <button class="btn-af btn-af-ok" onclick="buscarAfiliadoLocal()">OK</button>
+        <button class="btn-af btn-af-x" onclick="limpiarAfiliado()">X</button>
+      </div>
+      <div class="afil-info" id="af-info"></div>
+    </div>
+    <!-- DESCUENTO ESPECIAL -->
+  <div class="desc-esp-wrap">
+    <div class="desc-esp-header">🏷️ Descuento especial &nbsp;<button class="desc-esp-reset" onclick="setDescEsp(0)">Quitar</button></div>
+    <div class="desc-esp-controls">
+      <button class="desc-esp-btn" onclick="descEspMenos()">−</button>
+      <div class="desc-esp-display" id="desc-esp-display">0%</div>
+      <button class="desc-esp-btn" onclick="descEspMas()">+</button>
+    </div>
+  </div>
+
+  <div class="metodos-pago">
+      <label>Metodo de pago</label>
+      <div class="metodos-grid" id="metodos-grid"></div>
+    </div>
+    <button class="btn-cobrar" id="btn-cobrar" onclick="abrirConfirmacion()" disabled>
+      Cobrar
+      <small id="btn-info">Añade productos al carrito</small>
+    </button>
+    <button class="btn-vista" onclick="toggleVista()"><span id="bv-label2">📦 Ver Productos</span><span class="bv-badge" id="bv-badge2">0</span></button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACION -->
+<div class="modal-overlay" id="modal-conf">
+  <div class="modal">
+    <h3>Confirmar venta</h3>
+    <div id="modal-detalle"></div>
+    <div class="modal-btns">
+      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirmar" id="btn-conf-pago" onclick="confirmarVenta()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL -->
+<div id="modal-historial" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:12px;">
+  <div style="background:white;border-radius:14px;width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="background:#1a3a8f;color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <h3 style="margin:0;font-size:15px;">📋 Historial de ventas del día</h3>
+        <div id="hist-resumen" style="font-size:11px;opacity:0.7;margin-top:2px;"></div>
+      </div>
+      <button onclick="cerrarHistorial()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;">×</button>
+    </div>
+    <div id="hist-lista" style="flex:1;overflow-y:auto;padding:12px;"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE FACTURA -->
+<div id="modal-detalle-hist" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;align-items:center;justify-content:center;padding:12px;">
+  <div style="background:white;border-radius:14px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="background:#1a3a8f;color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;font-size:14px;">Detalle de factura</h3>
+      <button onclick="cerrarDetalleHist()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;">×</button>
+    </div>
+    <div id="detalle-hist-content" style="padding:16px;"></div>
+    <div style="padding:0 16px 16px;display:flex;gap:8px;">
+      <button onclick="imprimirDesdeHistorial()" style="flex:1;background:#1a3a8f;color:white;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">🖨 Imprimir</button>
+      <button onclick="cerrarDetalleHist()" style="flex:1;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXITO -->
+<div class="modal-overlay" id="modal-exito">
+  <div class="modal" style="text-align:center;">
+    <div class="exito-icon">✅</div>
+    <h3>Venta registrada</h3>
+    <div id="exito-info" style="font-size:13px;color:#374151;margin:1rem 0;line-height:1.8;"></div>
+    <div style="display:flex;gap:8px;margin-top:0;">
+      <button class="btn-confirmar" onclick="imprimirRecibo()" style="background:#1a3a8f;">🖨 Imprimir</button>
+      <button class="btn-confirmar" onclick="nuevaVenta()">Nueva venta</button>
+    </div>
+  </div>
+</div>
+
+<iframe id="print-frame" style="display:none;"></iframe>
+
+<script>
+var descEsp = 0;
+function setDescEsp(val){
+  descEsp = Math.round((parseFloat(val)||0)*10)/10;
+  if(descEsp<0)descEsp=0; if(descEsp>100)descEsp=100;
+  var d=document.getElementById('desc-esp-display'); if(d)d.textContent=descEsp+'%';
+  actualizarTotales();
+}
+function descEspMenos(){ setDescEsp(descEsp - 0.5); }
+function descEspMas(){ setDescEsp(descEsp + 0.5); }
+// ── CONFIGURACION ─────────────────────────────────────────────
+var DB_NAME    = 'demipatipos-offline';
+var DB_VERSION = 4;
+var db         = null;
+var SERVIDOR   = '';
+var POS_TERM   = 1;
+var POS_USER   = 0;
+var CONFIG     = {};
+var ALL_PRODS  = [];
+var ALL_CATS   = [];
+var PROD_CATS  = {};
+var DESCUENTOS = {CASH:0, TB:0, PL:0, CB:0};
+var TIENE_CUENTA = {CASH:false, TB:false, PL:false, CB:false};
+
+var carrito  = [];
+var metodo   = 'CASH';
+var afiliado = null;
+var cat1_sel = null;
+var cat2_sel = null;
+var _printData = null;
+
+function generarTokenLocal() {
+    var letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    var token = '';
+    for (var i=0; i<4; i++) token += letras[Math.floor(Math.random()*letras.length)];
+    token += '-';
+    for (var j=0; j<4; j++) token += Math.floor(Math.random()*10);
+    return token;
+}
+
+// ── INDEXEDDB ─────────────────────────────────────────────────
+function abrirDB() {
+    return new Promise(function(resolve, reject) {
+        // Eliminar DB anterior si existe con estructura incorrecta
+        var req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = function(e) {
+            var d = e.target.result;
+            // Eliminar stores existentes para recrear limpio
+            var existing = Array.from(d.objectStoreNames);
+            existing.forEach(function(s) {
+                try { d.deleteObjectStore(s); } catch(ex) {}
+            });
+            // Crear stores frescos
+            d.createObjectStore('config',            {keyPath:'k'});
+            d.createObjectStore('productos',         {keyPath:'rowid'});
+            d.createObjectStore('categorias',        {keyPath:'rowid'});
+            d.createObjectStore('prod_cats',         {keyPath:'id', autoIncrement:true});
+            d.createObjectStore('ventas_pendientes', {keyPath:'local_id'});
+            d.createObjectStore('afiliados',         {keyPath:'id'});
+        };
+        req.onsuccess = function(e) { db = e.target.result; resolve(db); };
+        req.onerror   = function(e) { reject(e); };
+    });
+}
+function dbPut(store, data) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(data).onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+function dbGetAll(store) {
+    return new Promise(function(resolve, reject) {
+        var tx  = db.transaction(store, 'readonly');
+        var req = tx.objectStore(store).getAll();
+        req.onsuccess = function(e) { resolve(e.target.result); };
+        req.onerror   = reject;
+    });
+}
+function dbGet(store, key) {
+    return new Promise(function(resolve, reject) {
+        var tx  = db.transaction(store, 'readonly');
+        var req = tx.objectStore(store).get(key);
+        req.onsuccess = function(e) { resolve(e.target.result); };
+        req.onerror   = reject;
+    });
+}
+function dbDelete(store, key) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(key).onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+function dbClear(store) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).clear().onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+
+// ── INICIO ────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+    // Reloj
+    setInterval(function(){
+        var d = new Date();
+        var dt = document.getElementById('pos-datetime');
+        if (dt) dt.textContent = d.toLocaleDateString('es-CU') + ' ' + d.toLocaleTimeString('es-CU');
+    }, 1000);
+
+    // Cargar config guardada y restaurar backup si hay ventas perdidas
+    abrirDB().then(function() {
+        // Restaurar ventas del backup localStorage que no estén en IndexedDB
+        try {
+            var bk = JSON.parse(localStorage.getItem('dmppos_backup') || '[]');
+            if (bk.length > 0) {
+                bk.forEach(function(v) {
+                    dbGet('ventas_pendientes', v.local_id).then(function(ex){
+                        if (!ex) {
+                            dbPut('ventas_pendientes', v).then(function(){
+                                console.log('Restaurada venta del backup:', v.local_id);
+                            });
+                        }
+                    }).catch(function(){
+                        dbPut('ventas_pendientes', v);
+                    });
+                });
+            }
+        } catch(e) {}
+        return dbGet('config', 'setup');
+    }).then(function(cfg) {
+        if (cfg && cfg.v) {
+            var u = document.getElementById('setup-url');
+            var t = document.getElementById('setup-terminal');
+            var l = document.getElementById('setup-login');
+            if (u && cfg.v.url)      u.value = cfg.v.url;
+            if (t && cfg.v.terminal) t.value = cfg.v.terminal;
+            if (l && cfg.v.login)    l.value = cfg.v.login;
+        }
+        return dbGetAll('productos');
+    }).then(function(prods) {
+        if (prods.length > 0) {
+            var card = document.querySelector('#pantalla-inicio .setup-card');
+            if (card) card.insertAdjacentHTML('beforeend',
+                '<div style="text-align:center;margin-top:8px;font-size:11px;opacity:0.5;">'+prods.length+' productos en cache</div>');
+        }
+    }).catch(function(e) { console.warn('DB init:', e); });
+});
+
+// ── CONECTAR SERVIDOR ─────────────────────────────────────────
+window.conectarServidor = function() {
+    var msg = document.getElementById('setup-msg');
+    var url   = document.getElementById('setup-url').value.trim().replace(/\/$/,'');
+    var term  = parseInt(document.getElementById('setup-terminal').value) || 1;
+    var pass  = document.getElementById('setup-pass').value.trim();
+    var login = document.getElementById('setup-login').value.trim();
+    var msg   = document.getElementById('setup-msg');
+    var btn   = document.getElementById('btn-conectar');
+
+    if (!url || !term) { msg.style.color='#fca5a5'; msg.textContent='Introduce la URL y el terminal.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Conectando...';
+    msg.style.color = 'rgba(255,255,255,0.6)'; msg.textContent = 'Conectando...';
+
+    fetch(url + '/gestion/custom/demipatipos/pos/ajax.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({action:'sync_download', terminal: term, login: login, pass: pass})
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(function(d) {
+        if (!d.ok) throw new Error(d.msg || 'Error del servidor');
+        msg.textContent = 'Guardando ' + d.productos.length + ' productos...';
+        SERVIDOR = url; POS_TERM = term;
+
+        // Guardar en DB usando promesas encadenadas
+        return abrirDB().then(function() {
+            return dbClear('productos');
+        }).then(function() {
+            return dbClear('categorias');
+        }).then(function() {
+            return dbClear('prod_cats');
+        }).then(function() {
+            var proms = d.productos.map(function(p){ return dbPut('productos', p); });
+            return Promise.all(proms);
+        }).then(function() {
+            var proms = d.categorias.map(function(c){ return dbPut('categorias', c); });
+            return Promise.all(proms);
+        }).then(function() {
+            var pid = 1;
+            var proms = d.prod_cats.map(function(pc){ pc.id = pid++; return dbPut('prod_cats', pc); });
+            return Promise.all(proms);
+        }).then(function() {
+            return dbClear('afiliados');
+        }).then(function() {
+            var proms = (d.afiliados||[]).map(function(a){ return dbPut('afiliados', a); });
+            return Promise.all(proms);
+        }).then(function() {
+            return Promise.all([
+                dbPut('config', {k:'conf',    v: d.conf}),
+                dbPut('config', {k:'sync_ts', v: d.ts}),
+                dbPut('config', {k:'setup',   v: {url:url, terminal:term, login:login, user_id: d.user_id||0}})
+            ]);
+        }).then(function() {
+            msg.style.color = '#86efac';
+            msg.textContent = '✅ ' + d.productos.length + ' productos descargados.';
+            setTimeout(function(){ iniciarPOS(d); }, 800);
+        });
+    })
+    .catch(function(e) {
+        msg.style.color = '#fca5a5';
+        msg.textContent = 'Error: ' + (e.message || e.toString() || JSON.stringify(e));
+        console.error('conectarServidor error:', e);
+        btn.disabled = false; btn.textContent = '🔗 Conectar y Descargar Datos';
+    });
+};
+
+window.usarDatosLocales = function() {
+    var msg = document.getElementById('setup-msg');
+    abrirDB().then(function() {
+        return dbGetAll('productos');
+    }).then(function(prods) {
+        if (!prods.length) {
+            msg.style.color='#fca5a5';
+            msg.textContent='No hay datos locales. Conéctate primero.';
+            return;
+        }
+        return Promise.all([
+            dbGet('config','setup'),
+            dbGet('config','conf'),
+            dbGetAll('categorias'),
+            dbGetAll('prod_cats'),
+            dbGet('config','sync_ts')
+        ]).then(function(res) {
+            var cfg=res[0], conf=res[1], cats=res[2], pcats=res[3], ts=res[4];
+            if (cfg && cfg.v) {
+            SERVIDOR = cfg.v.url;
+            POS_TERM = parseInt(cfg.v.terminal) || 1;
+            if (cfg.v.user_id) POS_USER = parseInt(cfg.v.user_id);
+        }
+            iniciarPOS({
+                productos: prods, categorias: cats, prod_cats: pcats,
+                conf: conf ? conf.v : {}, ts: ts ? ts.v : 0
+            });
+        });
+    }).catch(function(e) {
+        msg.style.color='#fca5a5';
+        msg.textContent='Error: '+e.message;
+    });
+};
+
+function iniciarPOS(d) {
+    if (d.user_id) POS_USER = parseInt(d.user_id);
+    if (d.user_nombre) CONFIG['_CAJERO_NOMBRE'] = d.user_nombre;
+    ALL_PRODS = d.productos;
+    ALL_CATS  = d.categorias;
+    PROD_CATS = {};
+    d.prod_cats.forEach(function(pc) {
+        if (!PROD_CATS[pc.fk_product]) PROD_CATS[pc.fk_product] = [];
+        PROD_CATS[pc.fk_product].push(parseInt(pc.fk_categorie));
+    });
+    CONFIG = d.conf || {};
+    if (d.cajero_nombre) CONFIG['_cajero_nombre'] = d.cajero_nombre;
+
+    // Descuentos
+    DESCUENTOS = {
+        CASH: parseFloat(CONFIG['DEMIPATIPOS_DESC_CASH'] || 0),
+        TB:   parseFloat(CONFIG['DEMIPATIPOS_DESC_TB']   || 0),
+        PL:   parseFloat(CONFIG['DEMIPATIPOS_DESC_PL']   || 0),
+        CB:   parseFloat(CONFIG['DEMIPATIPOS_DESC_CB']   || 0),
+    };
+
+    // Cuentas del terminal
+    var t = POS_TERM;
+    TIENE_CUENTA = {
+        CASH: parseInt(CONFIG['CASHDESK_ID_BANKACCOUNT_CASH'+t] || 0) > 0,
+        TB:   parseInt(CONFIG['CASHDESK_ID_BANKACCOUNT_TB'+t]   || 0) > 0,
+        PL:   parseInt(CONFIG['CASHDESK_ID_BANKACCOUNT_PL'+t]   || 0) > 0,
+        CB:   parseInt(CONFIG['CASHDESK_ID_BANKACCOUNT_CB'+t]   || 0) > 0,
+    };
+
+    // Titulo
+    var term_name = CONFIG['TAKEPOS_TERMINAL_NAME_'+t] || 'Terminal '+t;
+    var ubicacion = CONFIG['DEMIPATIPOS_TERMINAL_UBICACION_'+t] || '';
+    document.getElementById('pos-titulo').textContent = 'DemipatiPOS — ' + term_name;
+    document.getElementById('pos-datetime').dataset.ubicacion = ubicacion;
+
+    // Botones de método
+    renderMetodos();
+
+    // Renderizar categorías raíz
+    var root_id = parseInt(CONFIG['TAKEPOS_ROOT_CATEGORY_ID'] || 1);
+    var root_cats = ALL_CATS.filter(function(c){ return parseInt(c.fk_parent) === root_id; });
+    if (!root_cats.length) root_cats = ALL_CATS.filter(function(c){ return !c.fk_parent || parseInt(c.fk_parent)===0; });
+
+    var grid = document.getElementById('grid-l1');
+    grid.innerHTML = '';
+    root_cats.forEach(function(cat) {
+        var div = document.createElement('div');
+        div.className = 'cat-card';
+        div.innerHTML = '<div class="cat-card-name">'+cat.label+'</div>';
+        div.addEventListener('click', function(){ selCat1(cat.rowid, div); });
+        grid.appendChild(div);
+    });
+
+    // Sincronizar estado
+    actualizarEstadoConexion();
+
+    // Ocultar pantalla de inicio
+    document.getElementById('pantalla-inicio').style.display = 'none';
+
+    var ts_rec = d.ts ? new Date(d.ts*1000).toLocaleString('es-CU') : 'desconocido';
+    mostrarToast('Datos del ' + ts_rec, 'info');
+}
+
+function renderMetodos() {
+    var grid = document.getElementById('metodos-grid');
+    grid.innerHTML = '';
+    var mets = [
+        {k:'CASH', label:'Efectivo'},
+        {k:'TB',   label:'Transf.'},
+        {k:'PL',   label:'P. Linea'},
+        {k:'CB',   label:'Tarjeta'},
+    ];
+    mets.forEach(function(m) {
+        if (!TIENE_CUENTA[m.k]) return;
+        var btn = document.createElement('button');
+        btn.className = 'btn-met' + (m.k === metodo ? ' sel' : '');
+        btn.id = 'btn-' + m.k;
+        var desc = DESCUENTOS[m.k] > 0 ? '<span class="met-desc">-'+DESCUENTOS[m.k]+'%</span>' : '';
+        btn.innerHTML = m.label + desc;
+        btn.addEventListener('click', function(){ selMetodo(m.k); });
+        grid.appendChild(btn);
+    });
+    // Seleccionar el primer disponible
+    var primer = mets.find(function(m){ return TIENE_CUENTA[m.k]; });
+    if (primer) selMetodo(primer.k);
+}
+
+// ── CATEGORIAS ────────────────────────────────────────────────
+function getCatChildren(parentId) {
+    return ALL_CATS.filter(function(c){ return parseInt(c.fk_parent) === parseInt(parentId); });
+}
+function getProdsForCat(catId) {
+    return ALL_PRODS.filter(function(p){
+        var cats = PROD_CATS[p.rowid] || [];
+        return cats.indexOf(parseInt(catId)) >= 0 || cats.indexOf(String(catId)) >= 0;
+    });
+}
+function selCat1(catId, el) {
+    cat1_sel = catId; cat2_sel = null;
+    document.querySelectorAll('#grid-l1 .cat-card').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    document.getElementById('grid-l3').innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem;font-size:11px;">Selecciona una subcategoria</div>';
+    document.getElementById('grid-prods').innerHTML = '<div class="prod-empty">Selecciona una categoria</div>';
+    renderCat2(catId);
+}
+function renderCat2(parentId) {
+    var children = getCatChildren(parentId);
+    var grid = document.getElementById('grid-l2');
+    grid.innerHTML = '';
+    if (!children.length) {
+        grid.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem;font-size:11px;">Sin subcategorias</div>';
+        renderProds(getProdsForCat(parentId));
+        return;
+    }
+    children.forEach(function(c) {
+        var div = document.createElement('div');
+        div.className = 'cat-card';
+        div.innerHTML = '<div class="cat-card-name">'+c.label+'</div>';
+        div.addEventListener('click', function(){ selCat2(c.rowid, div); });
+        grid.appendChild(div);
+    });
+}
+function selCat2(catId, el) {
+    cat2_sel = catId;
+    document.querySelectorAll('#grid-l2 .cat-card').forEach(function(c){ c.classList.remove('active'); });
+    if (el && el.classList) el.classList.add('active');
+    document.getElementById('grid-l3').innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem;font-size:11px;">Sin subnivel</div>';
+    document.getElementById('grid-prods').innerHTML = '<div class="prod-empty">Selecciona una categoria</div>';
+    var children = getCatChildren(catId);
+    if (children.length > 0) renderCat3(catId, children);
+    else renderProds(getProdsForCat(catId));
+}
+function renderCat3(parentId, children) {
+    var grid = document.getElementById('grid-l3');
+    grid.innerHTML = '';
+    document.getElementById('grid-prods').innerHTML = '<div class="prod-empty">Selecciona una subcategoria</div>';
+    children.forEach(function(c) {
+        var div = document.createElement('div');
+        div.className = 'cat-card';
+        div.innerHTML = '<div class="cat-card-name">'+c.label+'</div>';
+        div.addEventListener('click', function(){
+            document.querySelectorAll('#grid-l3 .cat-card').forEach(function(x){ x.classList.remove('active'); });
+            div.classList.add('active');
+            renderProds(getProdsForCat(c.rowid));
+        });
+        grid.appendChild(div);
+    });
+}
+function renderProds(prods) {
+    var grid = document.getElementById('grid-prods');
+    grid.innerHTML = '';
+    if (!prods.length) { grid.innerHTML = '<div class="prod-empty">Sin productos</div>'; return; }
+    prods.forEach(function(p) {
+        var div = document.createElement('div');
+        var esServicio = parseInt(p.fk_product_type) === 1;
+        var sinStock   = !esServicio && parseFloat(p.stock) <= 0;
+        div.className  = 'prod-card' + (sinStock ? ' prod-sin-stock' : '');
+        var imgHtml = p.foto_data
+            ? '<img src="' + p.foto_data + '" alt="">'
+            : '📦';
+        div.innerHTML = '<div class="prod-img">'+imgHtml+'</div>'
+            + '<div class="prod-info">'
+            + '<div class="prod-name">'+p.ref.replace(/_/g,' ')+'</div>'
+            + '<div class="prod-price">'+parseFloat(p.price_ttc).toFixed(2)+' CUP</div>'
+            + (sinStock ? '<div class="prod-agotado">Sin stock</div>' : '')
+            + '</div>';
+        if (!sinStock) {
+            (function(pid, pref, pprecio, pfoto){
+                div.addEventListener('click', function(){ agregarAlCarrito(pid, pref, pprecio, pfoto); });
+            })(parseInt(p.rowid), p.ref, parseFloat(p.price_ttc), p.foto);
+        }
+        grid.appendChild(div);
+    });
+}
+function filtrarProds(q) {
+    q = q.toLowerCase();
+    if (!q) return;
+    var prods = ALL_PRODS.filter(function(p){ return p.ref.toLowerCase().includes(q) || (p.label||'').toLowerCase().includes(q); });
+    renderProds(prods);
+}
+
+// ── CARRITO ───────────────────────────────────────────────────
+function agregarAlCarrito(id, ref, precio, foto) {
+    id = parseInt(id);
+    var ex = carrito.find(function(i){ return i.id===id; });
+    if (ex) ex.qty++;
+    else carrito.push({id:id, ref:ref, precio:precio, foto:foto, qty:1});
+    renderCarrito();
+}
+function cambiarQty(id, delta) {
+    id = parseInt(id);
+    var idx = carrito.findIndex(function(i){ return i.id===id; });
+    if (idx<0) return;
+    carrito[idx].qty += delta;
+    if (carrito[idx].qty <= 0) carrito.splice(idx,1);
+    renderCarrito();
+}
+function eliminarItem(id) { id=parseInt(id); carrito=carrito.filter(function(i){ return i.id!==id; }); renderCarrito(); }
+function limpiarCarrito() { carrito=[]; renderCarrito(); }
+
+function actualizarBadge(){var n=carrito?carrito.length:0;var b=document.getElementById('bv-badge');if(b)b.textContent=n;var b2=document.getElementById('bv-badge2');if(b2)b2.textContent=n;}
+function renderCarrito() {
+    actualizarBadge();
+    var cont = document.getElementById('carrito-items');
+    cont.innerHTML = '';
+    if (!carrito.length) { cont.innerHTML='<div class="carrito-empty">El carrito esta vacio</div>'; actualizarTotales(); return; }
+    carrito.forEach(function(item) {
+        var div = document.createElement('div'); div.className = 'carrito-item';
+        div.innerHTML = '<div class="ci-name">'+item.ref.replace(/_/g,' ')+'<div class="ci-price">'+item.precio.toFixed(2)+' CUP</div></div>'
+            +'<div class="ci-qty"><button class="ci-minus">&#8722;</button><span>'+item.qty+'</span><button class="ci-plus">&#43;</button></div>'
+            +'<div class="ci-total">'+(item.precio*item.qty).toFixed(2)+'</div>'
+            +'<button class="ci-del">&#215;</button>';
+        (function(id){
+            div.querySelector('.ci-minus').addEventListener('click', function(e){ e.stopPropagation(); cambiarQty(id,-1); });
+            div.querySelector('.ci-plus').addEventListener('click',  function(e){ e.stopPropagation(); cambiarQty(id,1); });
+            div.querySelector('.ci-del').addEventListener('click',   function(e){ e.stopPropagation(); eliminarItem(id); });
+        })(item.id);
+        cont.appendChild(div);
+    });
+    actualizarTotales();
+}
+
+function actualizarTotales() {
+    var sub  = carrito.reduce(function(s,i){ return s+i.precio*i.qty; }, 0);
+    var descEspMonto = Math.round(sub * descEsp / 100 * 100) / 100;
+    var subConDescEsp = sub - descEspMonto;
+    var pct  = DESCUENTOS[metodo] || 0;
+    var desc = Math.round(subConDescEsp * pct / 100 * 100) / 100;
+    var cred = afiliado ? Math.min(afiliado.saldo, subConDescEsp-desc) : 0;
+    var total = subConDescEsp - desc - cred;
+    document.getElementById('tot-sub').textContent   = sub.toFixed(2) + ' CUP';
+    document.getElementById('tot-total').textContent = total.toFixed(2) + ' CUP';
+    var rowDescEsp = document.getElementById('row-desc-esp');
+    if (rowDescEsp) { if(descEspMonto>0){rowDescEsp.style.display='';var l=document.getElementById('lbl-desc-esp');if(l)l.textContent='Desc. especial (-'+descEsp+'%)';document.getElementById('tot-desc-esp').textContent='-'+descEspMonto.toFixed(2)+' CUP';}else rowDescEsp.style.display='none'; }
+    var rowDesc = document.getElementById('row-desc');
+    if (rowDesc) { if(desc>0){rowDesc.style.display='';document.getElementById('lbl-desc').textContent='Descuento '+metodo+' (-'+pct+'%)';document.getElementById('tot-desc').textContent='-'+desc.toFixed(2)+' CUP';}else rowDesc.style.display='none'; }
+    var rowAfil = document.getElementById('row-afil');
+    if (rowAfil) { if(cred>0){rowAfil.style.display='';document.getElementById('tot-afil').textContent='-'+cred.toFixed(2)+' CUP';}else rowAfil.style.display='none'; }
+    var btn = document.getElementById('btn-cobrar');
+    var info = document.getElementById('btn-info');
+    if (carrito.length>0) { btn.disabled=false; info.textContent=total.toFixed(2)+' CUP - '+metodo; }
+    else { btn.disabled=true; info.textContent='Añade productos al carrito'; }
+}
+
+function selMetodo(m) {
+    var btn = document.getElementById('btn-'+m);
+    if (!btn || btn.disabled) return;
+    metodo = m;
+    document.querySelectorAll('.btn-met').forEach(function(b){ b.classList.remove('sel'); });
+    if (btn) btn.classList.add('sel');
+    actualizarTotales();
+}
+
+// ── AFILIADO ──────────────────────────────────────────────────
+function buscarAfiliado() {
+    var codigo = document.getElementById('af-codigo').value.trim();
+    var pin    = document.getElementById('af-pin').value.trim();
+    var info   = document.getElementById('af-info');
+    if (!codigo||!pin) { info.textContent='Introduce codigo y PIN.'; info.className='afil-info err'; return; }
+    if (!navigator.onLine) { info.textContent='Sin conexion — no se puede verificar afiliado.'; info.className='afil-info err'; return; }
+    info.textContent='Buscando...'; info.className='afil-info';
+    fetch(SERVIDOR+'/gestion/custom/demipatipos/pos/ajax.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'buscar_afiliado',codigo:codigo,pin:pin})
+    }).then(function(r){ return r.json(); }).then(function(d) {
+        if (!d.ok) { info.textContent=d.msg; info.className='afil-info err'; afiliado=null; return; }
+        afiliado=d.afiliado;
+        info.textContent='OK: '+afiliado.nombre+' — '+afiliado.saldo.toFixed(2)+' CUP';
+        info.className='afil-info ok';
+        actualizarTotales();
+    }).catch(function(){ info.textContent='Error de conexion.'; info.className='afil-info err'; });
+}
+function limpiarAfiliado() {
+    afiliado=null;
+    document.getElementById('af-codigo').value='';
+    document.getElementById('af-pin').value='';
+    document.getElementById('af-info').textContent='';
+    actualizarTotales();
+}
+
+// ── CONFIRMACION ──────────────────────────────────────────────
+function abrirConfirmacion() {
+    if (!carrito.length) return;
+    var sub  = carrito.reduce(function(s,i){ return s+i.precio*i.qty; }, 0);
+    var descEspMonto = Math.round(sub * descEsp / 100 * 100) / 100;
+    var subConDescEsp = sub - descEspMonto;
+    var pct  = DESCUENTOS[metodo] || 0;
+    var desc = Math.round(subConDescEsp * pct / 100 * 100) / 100;
+    var cred = afiliado ? Math.min(afiliado.saldo, subConDescEsp-desc) : 0;
+    var total = subConDescEsp - desc - cred;
+    var html = '<div style="font-size:12px;">';
+    carrito.forEach(function(i){ html+='<div class="modal-row"><span>'+i.ref.replace(/_/g,' ')+' x'+i.qty+'</span><span>'+(i.precio*i.qty).toFixed(2)+' CUP</span></div>'; });
+    html+='<div class="modal-row" style="border-top:1px solid #e5e7eb;margin-top:5px;padding-top:5px;"><span>Subtotal</span><span>'+sub.toFixed(2)+' CUP</span></div>';
+    if (descEspMonto>0) html+='<div class="modal-row" style="color:var(--red)"><span>Desc. especial (-'+descEsp+'%)</span><span>-'+descEspMonto.toFixed(2)+' CUP</span></div>';
+    if (desc>0) html+='<div class="modal-row mdesc"><span>Descuento '+metodo+' (-'+pct+'%)</span><span>-'+desc.toFixed(2)+' CUP</span></div>';
+    if (cred>0) html+='<div class="modal-row" style="color:var(--green)"><span>Credito afiliado</span><span>-'+cred.toFixed(2)+' CUP</span></div>';
+    html+='<div class="modal-row mtotal"><span>TOTAL</span><span>'+total.toFixed(2)+' CUP</span></div>';
+    html+='<div class="modal-row" style="color:var(--gray);margin-top:3px;"><span>Metodo</span><span>'+metodo+'</span></div>';
+    html+='</div>';
+    document.getElementById('modal-detalle').innerHTML = html;
+    document.getElementById('modal-conf').classList.add('open');
+}
+function cerrarModal() { document.getElementById('modal-conf').classList.remove('open'); }
+
+async function confirmarVenta() {
+    var btn = document.getElementById('btn-conf-pago');
+    btn.disabled=true; btn.textContent='Procesando...';
+    var sub  = carrito.reduce(function(s,i){ return s+i.precio*i.qty; }, 0);
+    var pct  = DESCUENTOS[metodo] || 0;
+    var desc = Math.round(sub * pct / 100 * 100) / 100;
+    var cred = afiliado ? Math.min(afiliado.saldo, sub-desc) : 0;
+    var total = sub - desc - cred;
+    var PUNTOS_PCT = parseFloat(CONFIG['DEMIPATIPOS_PUNTOS_COMPRA'] || 2);
+    var puntos_ganados = Math.round(total * PUNTOS_PCT) / 100;
+    var descEspMonto = Math.round(sub * descEsp / 100 * 100) / 100;
+    var datosVenta = {
+        action:'crear_factura', terminal:POS_TERM, user_id:POS_USER,
+        items:carrito, metodo:metodo, subtotal:sub,
+        descuento_especial:descEspMonto, descuento:desc,
+        credito_afiliado:cred, total:total, afiliado:afiliado?afiliado.id:null,
+        puntos_ganados: puntos_ganados
+    };
+
+    // Actualizar saldo local del afiliado inmediatamente (offline-first)
+    if (afiliado) {
+        var nuevoSaldo = afiliado.saldo - cred + puntos_ganados;
+        dbGetAll('afiliados').then(function(afs){
+            var a = afs.find(function(x){ return x.id === afiliado.id; });
+            if (a) { a.saldo = nuevoSaldo; dbPut('afiliados', a); }
+        });
+        afiliado.saldo = nuevoSaldo;
+    }
+
+    if (!navigator.onLine) {
+        // Guardar offline
+        var local_id = 'OFF-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);
+        var token_local = generarTokenLocal();
+        datosVenta.local_id = local_id;
+        datosVenta.token_local = token_local;
+        datosVenta.fecha    = new Date().toISOString().replace('T',' ').substr(0,19);
+        // Backup en localStorage como respaldo
+        try {
+            var bk = JSON.parse(localStorage.getItem('dmppos_backup') || '[]');
+            bk.push(datosVenta);
+            localStorage.setItem('dmppos_backup', JSON.stringify(bk));
+        } catch(e) {}
+        await dbPut('ventas_pendientes', datosVenta);
+        var pendientes = await dbGetAll('ventas_pendientes');
+        cerrarModal(); btn.disabled=false; btn.textContent='Confirmar';
+        _printData = {token:token_local, ref:local_id,
+            fecha:new Date().toLocaleDateString('es-CU')+' '+new Date().toLocaleTimeString('es-CU'),
+            terminal:CONFIG['TAKEPOS_TERMINAL_NAME_'+POS_TERM]||'Terminal '+POS_TERM,
+            ubicacion:CONFIG['DEMIPATIPOS_TERMINAL_UBICACION_'+POS_TERM]||'',
+            cajero:CONFIG['_cajero_nombre']||'',
+            metodo:metodo,items:carrito,subtotal:sub,descuento:desc,credito:cred,total:total,
+            afiliado:afiliado?{nombre:afiliado.nombre,codigo:afiliado.codigo,puntos:puntos_ganados,saldo:afiliado.saldo}:null};
+        var tokenHtmlEarly = '<div style="background:#1a3a8f;border-radius:8px;padding:12px;margin-top:10px;text-align:center;">'
+            +'<div style="color:rgba(255,255,255,0.7);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;">Codigo de puntos</div>'
+            +'<div style="color:white;font-size:26px;font-weight:900;letter-spacing:0.2em;margin:4px 0;">'+token_local+'</div>'
+            +'<div style="color:rgba(255,255,255,0.6);font-size:9px;">Guardalo para canjear en www.demipati.cu</div></div>';
+        document.getElementById('exito-info').innerHTML =
+            '<b>Venta guardada</b><br><b>Total:</b> '+total.toFixed(2)+' CUP<br>'
+            +'<span style="color:#f59e0b;font-size:10px;">'+pendientes.length+' pendiente(s) de sincronizar</span>'
+            + tokenHtmlEarly;
+        document.getElementById('modal-exito').classList.add('open');
+        document.getElementById('sync-dot').style.background = '#f59e0b';
+        document.getElementById('sync-label').textContent = pendientes.length+' pendiente(s)';
+        return;
+    }
+
+    // Intentar online, si falla guardar offline automaticamente
+    fetch(SERVIDOR+'/gestion/custom/demipatipos/pos/ajax.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(datosVenta)
+    }).then(function(r){ return r.json(); }).then(function(d) {
+        cerrarModal(); btn.disabled=false; btn.textContent='Confirmar';
+        if (!d.ok) { alert('Error: '+d.msg); return; }
+        var tokenHtml = '';
+        if (d.token) tokenHtml = '<div style="background:#1a3a8f;border-radius:8px;padding:12px;margin-top:10px;text-align:center;">'
+            +'<div style="color:rgba(255,255,255,0.7);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;">Codigo de puntos</div>'
+            +'<div style="color:white;font-size:26px;font-weight:900;letter-spacing:0.2em;margin:4px 0;">'+d.token+'</div>'
+            +'<div style="color:rgba(255,255,255,0.6);font-size:9px;">Dile este codigo al cliente</div></div>';
+        _printData = {token:d.token||null,ref:d.ref,
+            fecha:new Date().toLocaleDateString('es-CU')+' '+new Date().toLocaleTimeString('es-CU'),
+            terminal:CONFIG['TAKEPOS_TERMINAL_NAME_'+POS_TERM]||'Terminal '+POS_TERM,
+            ubicacion:CONFIG['DEMIPATIPOS_TERMINAL_UBICACION_'+POS_TERM]||'',
+            metodo:metodo,items:carrito,subtotal:sub,descuento:desc,credito:cred,total:total,
+            afiliado:afiliado?{nombre:afiliado.nombre,codigo:afiliado.codigo,puntos:d.puntos_ganados,saldo:d.saldo_final}:null};
+        document.getElementById('exito-info').innerHTML =
+            '<b>Factura:</b> '+d.ref+'<br><b>Total:</b> '+total.toFixed(2)+' CUP'
+            +(afiliado?'<br><b>Puntos:</b> +'+d.puntos_ganados+' CUP | <b>Saldo:</b> '+d.saldo_final+' CUP':'')
+            +tokenHtml;
+        document.getElementById('modal-exito').classList.add('open');
+    }).catch(function() {
+        // Sin conexion — guardar offline automaticamente
+        cerrarModal(); btn.disabled=false; btn.textContent='Confirmar';
+        var local_id = 'OFF-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);
+        datosVenta.local_id = local_id;
+        datosVenta.fecha    = new Date().toISOString().replace('T',' ').substr(0,19);
+        var token_local = generarTokenLocal();
+        datosVenta.token_local = token_local;
+        // Backup en localStorage como respaldo
+        try {
+            var bk = JSON.parse(localStorage.getItem('dmppos_backup') || '[]');
+            bk.push(datosVenta);
+            localStorage.setItem('dmppos_backup', JSON.stringify(bk));
+        } catch(e) {}
+        dbPut('ventas_pendientes', datosVenta).then(function() {
+            return dbGetAll('ventas_pendientes');
+        }).then(function(pendientes) {
+            _printData = {
+                token: token_local,
+                ref: local_id,
+                fecha: new Date().toLocaleDateString('es-CU')+' '+new Date().toLocaleTimeString('es-CU'),
+                terminal: CONFIG['TAKEPOS_TERMINAL_NAME_'+POS_TERM]||'Terminal '+POS_TERM,
+                ubicacion: CONFIG['DEMIPATIPOS_TERMINAL_UBICACION_'+POS_TERM]||'',
+                cajero: CONFIG['_cajero_nombre']||'',
+                metodo: metodo, items: carrito,
+                subtotal: sub, descuento: desc, credito: cred, total: total,
+                afiliado: afiliado?{nombre:afiliado.nombre,codigo:afiliado.codigo,puntos:puntos_ganados,saldo:afiliado.saldo}:null
+            };
+            var tokenHtml = '<div style="background:#1a3a8f;border-radius:8px;padding:12px;margin-top:10px;text-align:center;">'
+                +'<div style="color:rgba(255,255,255,0.7);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;">Codigo de puntos</div>'
+                +'<div style="color:white;font-size:26px;font-weight:900;letter-spacing:0.2em;margin:4px 0;">'+token_local+'</div>'
+                +'<div style="color:rgba(255,255,255,0.6);font-size:9px;">Guardalo para canjear en www.demipati.cu</div>'
+                +'</div>';
+            document.getElementById('exito-info').innerHTML =
+                '<b>Venta guardada</b><br><b>Total:</b> '+total.toFixed(2)+' CUP<br>'
+                +'<span style="color:#f59e0b;font-size:10px;">'+pendientes.length+' pendiente(s) de sincronizar</span>'
+                + tokenHtml;
+            document.getElementById('modal-exito').classList.add('open');
+            document.getElementById('sync-dot').style.background = '#f59e0b';
+            document.getElementById('sync-label').textContent = pendientes.length+' pendiente(s)';
+        }).catch(function(e){ alert('Error guardando: '+e); });
+    });
+}
+
+function nuevaVenta() { document.getElementById('modal-exito').classList.remove('open'); limpiarCarrito(); limpiarAfiliado(); }
+
+// ── AFILIADO (busqueda local offline) ────────────────────────
+function buscarAfiliadoLocal() {
+    var codigo = document.getElementById('af-codigo').value.trim().toUpperCase();
+    var pin    = document.getElementById('af-pin').value.trim();
+    var info   = document.getElementById('af-info');
+    if (!codigo || !pin) { info.textContent='Introduce codigo y PIN.'; info.className='afil-info err'; return; }
+
+    info.textContent = 'Buscando...'; info.className = 'afil-info';
+
+    dbGetAll('afiliados').then(function(afiliados) {
+        var match = afiliados.find(function(a) {
+            return (a.ref && a.ref.toUpperCase() === codigo) || (a.email && a.email.toUpperCase() === codigo);
+        });
+        if (!match) {
+            info.textContent = 'Afiliado no encontrado en datos locales. Sincroniza primero.';
+            info.className = 'afil-info err';
+            afiliado = null;
+            return;
+        }
+        if (String(match.pin) !== pin) {
+            info.textContent = 'PIN incorrecto.';
+            info.className = 'afil-info err';
+            afiliado = null;
+            return;
+        }
+        afiliado = { id: match.id, nombre: match.nombre, codigo: match.ref, saldo: parseFloat(match.saldo) };
+        info.textContent = 'OK: '+afiliado.nombre+' — '+afiliado.saldo.toFixed(2)+' CUP';
+        info.className = 'afil-info ok';
+        actualizarTotales();
+    }).catch(function() {
+        info.textContent = 'Error accediendo a datos locales.';
+        info.className = 'afil-info err';
+    });
+}
+
+function limpiarAfiliado() {
+    afiliado = null;
+    document.getElementById('af-codigo').value = '';
+    document.getElementById('af-pin').value = '';
+    document.getElementById('af-info').textContent = '';
+    actualizarTotales();
+}
+
+// ── SINCRONIZACION ────────────────────────────────────────────
+var estaOnline = navigator.onLine;
+window.addEventListener('online',  actualizarEstadoConexion);
+window.addEventListener('offline', actualizarEstadoConexion);
+
+function actualizarEstadoConexion() {
+    estaOnline = navigator.onLine;
+    var dot   = document.getElementById('sync-dot');
+    var label = document.getElementById('sync-label');
+    if (dot)   dot.style.background = estaOnline ? '#16a34a' : '#f59e0b';
+    if (label) label.textContent    = estaOnline ? 'Online' : 'Offline';
+    if (estaOnline) setTimeout(function(){ sincronizarDatos(false); }, 2000);
+}
+
+window.sincronizarAhora = function() { sincronizarDatos(true); };
+
+async function sincronizarDatos(manual) {
+    if (!navigator.onLine) { if (manual) mostrarToast('Sin conexion a internet', 'warn'); return; }
+    var btn = document.getElementById('btn-sync');
+    if (btn) btn.textContent = '⏳';
+
+    try {
+        // Subir ventas pendientes (siempre, aunque este vacio, para procesar tokens pendiente_sync)
+        var pendientes = await dbGetAll('ventas_pendientes');
+        var setup_cfg = await dbGet('config','setup');
+        var _login = setup_cfg ? setup_cfg.v.login : '';
+        var res = await fetch(SERVIDOR+'/gestion/custom/demipatipos/pos/ajax.php', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'sync_upload', ventas:pendientes, login:_login})
+        });
+        var d = await res.json();
+        if (d.ok) {
+            for (var r of d.resultados) {
+                if (r.ok||r.skip) {
+                    await dbDelete('ventas_pendientes', r.local_id);
+                    try {
+                        var bk2 = JSON.parse(localStorage.getItem('dmppos_backup') || '[]');
+                        bk2 = bk2.filter(function(v){ return v.local_id !== r.local_id; });
+                        localStorage.setItem('dmppos_backup', JSON.stringify(bk2));
+                    } catch(e) {}
+                }
+            }
+            if (manual && pendientes.length > 0) mostrarToast(pendientes.length+' venta(s) sincronizada(s)', 'ok');
+        }
+
+        // Descargar datos frescos
+        var res2 = await fetch(SERVIDOR+'/gestion/custom/demipatipos/pos/ajax.php', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'sync_download', terminal:POS_TERM})
+        });
+        var d2 = await res2.json();
+        if (d2.ok) {
+            await dbClear('productos'); await dbClear('categorias'); await dbClear('prod_cats');
+            for (var p of d2.productos)  await dbPut('productos',  p);
+            for (var c of d2.categorias) await dbPut('categorias', c);
+            var pid=1; for (var pc of d2.prod_cats) { pc.id=pid++; await dbPut('prod_cats',pc); }
+            await dbClear('afiliados');
+            for (var af of (d2.afiliados||[])) await dbPut('afiliados', af);
+            await dbPut('config',{k:'conf',v:d2.conf});
+            await dbPut('config',{k:'sync_ts',v:d2.ts});
+            ALL_PRODS = d2.productos; ALL_CATS = d2.categorias;
+            PROD_CATS = {};
+            d2.prod_cats.forEach(function(pc){
+                if (!PROD_CATS[pc.fk_product]) PROD_CATS[pc.fk_product]=[];
+                PROD_CATS[pc.fk_product].push(parseInt(pc.fk_categorie));
+            });
+            if (manual) mostrarToast('Datos actualizados', 'ok');
+        }
+    } catch(e) { if (manual) mostrarToast('Error: '+e.message, 'err'); }
+    if (btn) btn.textContent = '↻ Sync';
+}
+
+// ── IMPRESION ─────────────────────────────────────────────────
+function imprimirRecibo() {
+    if (!_printData) return;
+    var d = _printData;
+    var rows=''; d.items.forEach(function(i){ rows+='<tr><td>'+i.ref.replace(/_/g,' ')+'</td><td class="c">'+i.qty+'</td><td class="r">'+(i.precio*i.qty).toFixed(2)+'</td></tr>'; });
+    var tots='<tr><td colspan="2">Subtotal</td><td class="r">'+d.subtotal.toFixed(2)+'</td></tr>';
+    if (d.descuento>0) tots+='<tr class="red"><td colspan="2">Descuento '+d.metodo+'</td><td class="r">-'+d.descuento.toFixed(2)+'</td></tr>';
+    if (d.credito>0)   tots+='<tr class="grn"><td colspan="2">Credito afiliado</td><td class="r">-'+d.credito.toFixed(2)+'</td></tr>';
+    tots+='<tr class="total"><td colspan="2">TOTAL</td><td class="r">'+d.total.toFixed(2)+' CUP</td></tr>';
+    var afil=d.afiliado?'<div class="afil"><b>'+d.afiliado.nombre+'</b> ('+d.afiliado.codigo+')<br>Puntos: +'+d.afiliado.puntos.toFixed(2)+' | Saldo: '+d.afiliado.saldo.toFixed(2)+' CUP</div>':'';
+    var tokenPrint=d.token?'<div style="border:2px dashed #1a3a8f;border-radius:6px;padding:10px;margin-top:8px;text-align:center;"><div style="font-size:9px;color:#6b7280;text-transform:uppercase;">Codigo de puntos</div><div style="font-size:22px;font-weight:900;color:#1a3a8f;letter-spacing:0.15em;">'+d.token+'</div><div style="font-size:9px;color:#6b7280;">Ingresalo en www.demipati.cu</div></div>':'';
+    var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title><style>@media print{@page{margin:5mm}body{margin:0}.no-print{display:none}}body{font-family:Arial,sans-serif;font-size:12px}.a4{max-width:180mm;margin:auto;padding:16px}h2{color:#1a3a8f;margin:0 0 2px;font-size:16px;text-align:center}.sub{text-align:center;color:#555;font-size:10px;margin-bottom:8px}hr{border:none;border-top:1px solid #ccc;margin:6px 0}table{width:100%;border-collapse:collapse;font-size:11px;margin:6px 0}th{background:#1a3a8f;color:white;padding:4px 5px;text-align:left}td{padding:3px 5px;border-bottom:1px solid #eee}.c{text-align:center}.r{text-align:right}.red{color:#cc2936}.grn{color:#16a34a}.total{font-weight:700;font-size:14px;border-top:2px solid #1a3a8f}.info{font-size:10px;color:#555;margin:4px 0}.afil{background:#f0f4ff;border:1px solid #c7d2fe;border-radius:4px;padding:6px;margin-top:8px;font-size:10px;color:#1a3a8f}.btn-row{text-align:center;margin:12px 0 4px;display:flex;gap:8px;justify-content:center}button{padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}.btn-p{background:#1a3a8f;color:white}.btn-c{background:#e5e7eb;color:#374151}</style></head><body class="vista-productos"><div class="a4"><h2>De Mi Pa Ti</h2><div class="sub">Recibo de compra</div><hr><div class="info"><b>Factura:</b> '+d.ref+' &nbsp; <b>Fecha:</b> '+d.fecha+'</div><div class="info"><b>Terminal:</b> '+d.terminal+(d.ubicacion?' &mdash; '+d.ubicacion:'')+'</div><div class="info"><b>Metodo:</b> '+d.metodo+'</div><hr><table><tr><th>Producto</th><th class="c">Cant.</th><th class="r">Total</th></tr>'+rows+'</table><table>'+tots+'</table>'+afil+tokenPrint+'<hr><div class="sub">Gracias por su compra &bull; www.demipati.cu</div></div><div class="btn-row no-print"><button class="btn-p" onclick="window.print()">🖨 Imprimir</button><button class="btn-c" onclick="window.close()">Cerrar</button></div><script>window.onafterprint=function(){window.close()}<\/script></body></html>';
+    var win=window.open('','_blank','width=700,height=600');
+    if (win){ win.document.write(html); win.document.close(); }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function mostrarToast(msg, tipo) {
+    var t = document.getElementById('pos-toast');
+    if (!t) { t=document.createElement('div'); t.id='pos-toast'; t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;transition:opacity 0.5s;pointer-events:none;'; document.body.appendChild(t); }
+    var cols={ok:'#16a34a',warn:'#f59e0b',err:'#dc2626',info:'#1a3a8f'};
+    t.style.background=cols[tipo]||cols.info; t.style.color='white'; t.style.opacity='1'; t.textContent=msg;
+    clearTimeout(t._t); t._t=setTimeout(function(){ t.style.opacity='0'; },3000);
+}
+
+// ── REPORTE EXCEL ────────────────────────────────────────────
+async function exportarReporte() {
+    var pendientes = await dbGetAll('ventas_pendientes');
+    if (!ALL_PRODS.length) { mostrarToast('No hay datos de productos cargados', 'warn'); return; }
+
+    // Calcular ventas por producto desde ventas pendientes
+    var ventas_map = {}; // prod_id => {qty, valor}
+    pendientes.forEach(function(v) {
+        (v.items || []).forEach(function(item) {
+            var id = parseInt(item.id);
+            if (!ventas_map[id]) ventas_map[id] = {qty:0, valor:0};
+            ventas_map[id].qty   += parseFloat(item.qty);
+            ventas_map[id].valor += parseFloat(item.precio) * parseFloat(item.qty);
+        });
+    });
+
+    // Construir filas
+    var filas = [];
+    ALL_PRODS.forEach(function(p) {
+        var id = parseInt(p.rowid);
+        var vend = ventas_map[id] || {qty:0, valor:0};
+        var stock_ini  = parseFloat(p.stock) + vend.qty; // stock inicial = actual + vendido
+        var stock_act  = parseFloat(p.stock);
+        filas.push([
+            p.ref.replace(/_/g,' '),        // Producto
+            stock_ini.toFixed(0),            // Stock inicial
+            stock_act.toFixed(0),            // Stock actualizado
+            parseFloat(p.price_ttc).toFixed(2), // Precio CUP
+            vend.qty.toFixed(0),             // Cantidad vendida
+            vend.valor.toFixed(2),           // Valor ventas CUP
+        ]);
+    });
+
+    // Ordenar por valor de ventas desc
+    filas.sort(function(a,b){ return parseFloat(b[5]) - parseFloat(a[5]); });
+
+    // Generar CSV con BOM para Excel
+    var headers = ['Producto','Stock Inicial','Stock Actualizado','Precio CUP','Cant. Vendida','Valor Ventas CUP'];
+    var csv = '\uFEFF'; // BOM para UTF-8
+    csv += headers.join(';') + '\r\n';
+    filas.forEach(function(f){
+        csv += f.map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';') + '\r\n';
+    });
+
+    // Totales
+    var tot_qty   = filas.reduce(function(s,f){ return s+parseFloat(f[4]); }, 0);
+    var tot_valor = filas.reduce(function(s,f){ return s+parseFloat(f[5]); }, 0);
+    csv += '"TOTAL";"";"";"";'+tot_qty.toFixed(0)+';'+tot_valor.toFixed(2)+'\r\n';
+
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    var fecha = new Date().toISOString().substr(0,10).replace(/-/g,'');
+    a.href     = url;
+    a.download = 'Reporte-TC'+POS_TERM+'-'+fecha+'.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrarToast(filas.length+' productos exportados', 'ok');
+}
+
+// ── EXPORTAR / IMPORTAR DATOS COMPLETOS (entre dispositivos) ──
+async function exportarDatos() {
+    try {
+        var productos  = await dbGetAll('productos');
+        var categorias = await dbGetAll('categorias');
+        var prod_cats  = await dbGetAll('prod_cats');
+        var afiliados  = await dbGetAll('afiliados');
+        var conf       = await dbGet('config', 'conf');
+        var setup      = await dbGet('config', 'setup');
+        var sync_ts    = await dbGet('config', 'sync_ts');
+
+        var paquete = {
+            version: 1,
+            tipo: 'demipatipos-datos-completos',
+            ts: new Date().toISOString(),
+            productos: productos,
+            categorias: categorias,
+            prod_cats: prod_cats,
+            afiliados: afiliados,
+            conf: conf ? conf.v : {},
+            setup: setup ? setup.v : {},
+            sync_ts: sync_ts ? sync_ts.v : 0
+        };
+
+        var json = JSON.stringify(paquete);
+        var blob = new Blob([json], {type:'application/json'});
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        var fecha = new Date().toISOString().substr(0,10).replace(/-/g,'');
+        a.href = url;
+        a.download = 'datos-demipatipos-TC'+POS_TERM+'-'+fecha+'.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        mostrarToast(productos.length+' productos, '+afiliados.length+' afiliados exportados', 'ok');
+    } catch(e) {
+        mostrarToast('Error al exportar: '+e.message, 'err');
+    }
+}
+
+window.importarDatos = function(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    var msg = document.getElementById('setup-msg');
+    msg.style.color = 'rgba(255,255,255,0.7)';
+    msg.textContent = 'Leyendo archivo...';
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var data;
+        try {
+            data = JSON.parse(e.target.result);
+        } catch(err) {
+            msg.style.color = '#fca5a5'; msg.textContent = 'Archivo invalido.';
+            return;
+        }
+        // Aceptar si tiene 'productos' (paquete completo), aunque falte el campo tipo
+        if (!Array.isArray(data.productos)) {
+            if (Array.isArray(data.ventas)) {
+                msg.style.color = '#fca5a5';
+                msg.textContent = 'Este es un archivo de VENTAS, no de datos. Usa el boton 📥 Importar (dentro del POS) para ventas.';
+            } else {
+                msg.style.color = '#fca5a5';
+                msg.textContent = 'Archivo no reconocido (campo "productos" no encontrado).';
+            }
+            return;
+        }
+
+        msg.style.color = 'rgba(255,255,255,0.7)';
+        msg.textContent = 'Importando '+data.productos.length+' productos...';
+
+        abrirDB().then(function() {
+            return Promise.all([dbClear('productos'), dbClear('categorias'), dbClear('prod_cats'), dbClear('afiliados')]);
+        }).then(function() {
+            var proms = [];
+            data.productos.forEach(function(p){ proms.push(dbPut('productos', p)); });
+            data.categorias.forEach(function(c){ proms.push(dbPut('categorias', c)); });
+            data.prod_cats.forEach(function(pc){ proms.push(dbPut('prod_cats', pc)); });
+            (data.afiliados||[]).forEach(function(a){ proms.push(dbPut('afiliados', a)); });
+            return Promise.all(proms);
+        }).then(function() {
+            return Promise.all([
+                dbPut('config', {k:'conf',    v: data.conf || {}}),
+                dbPut('config', {k:'setup',   v: data.setup || {}}),
+                dbPut('config', {k:'sync_ts', v: data.sync_ts || 0})
+            ]);
+        }).then(function() {
+            msg.style.color = '#86efac';
+            msg.textContent = '✅ Datos importados ('+data.productos.length+' productos, '+(data.afiliados||[]).length+' afiliados)';
+            SERVIDOR = (data.setup && data.setup.url) || '';
+            POS_TERM = (data.setup && data.setup.terminal) || 1;
+            setTimeout(function(){
+                iniciarPOS({
+                    productos: data.productos, categorias: data.categorias,
+                    prod_cats: data.prod_cats, conf: data.conf || {},
+                    ts: data.sync_ts || 0,
+                    user_id: data.setup ? data.setup.user_id : 0,
+                    cajero_nombre: (data.conf && data.conf['_cajero_nombre']) || ''
+                });
+            }, 600);
+        }).catch(function(e) {
+            msg.style.color = '#fca5a5'; msg.textContent = 'Error importando: '+e.message;
+        });
+    };
+    reader.readAsText(file);
+};
+
+// ── EXPORTAR / IMPORTAR VENTAS ────────────────────────────────
+async function exportarVentas() {
+    var pendientes = await dbGetAll('ventas_pendientes');
+    if (!pendientes.length) {
+        mostrarToast('No hay ventas pendientes para exportar', 'warn');
+        return;
+    }
+    var cfg = await dbGet('config','setup');
+    var exportData = {
+        version:  1,
+        terminal: POS_TERM,
+        ts:       new Date().toISOString(),
+        servidor: SERVIDOR,
+        ventas:   pendientes
+    };
+    var json = JSON.stringify(exportData, null, 2);
+    var blob = new Blob([json], {type:'application/json'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    var fecha = new Date().toISOString().substr(0,10).replace(/-/g,'');
+    a.href     = url;
+    a.download = 'ventas-TC'+POS_TERM+'-'+fecha+'.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrarToast(pendientes.length+' venta(s) exportada(s)', 'ok');
+}
+
+async function importarVentas(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    try {
+        var text = await file.text();
+        var data = JSON.parse(text);
+        if (!data.ventas || !Array.isArray(data.ventas)) throw new Error('Formato invalido');
+
+        var importadas = 0;
+        var duplicadas = 0;
+        for (var venta of data.ventas) {
+            if (!venta.local_id) venta.local_id = 'IMP-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);
+            // Verificar si ya existe
+            try {
+                var existe = await dbGet('ventas_pendientes', venta.local_id);
+                if (existe) { duplicadas++; continue; }
+            } catch(e) {}
+            await dbPut('ventas_pendientes', venta);
+            importadas++;
+        }
+
+        var msg = importadas+' venta(s) importada(s)';
+        if (duplicadas > 0) msg += ', '+duplicadas+' duplicada(s) omitida(s)';
+        mostrarToast(msg, 'ok');
+
+        // Actualizar contador de pendientes
+        var total = await dbGetAll('ventas_pendientes');
+        if (total.length > 0) {
+            document.getElementById('sync-label').textContent = total.length+' pendiente(s)';
+            document.getElementById('sync-dot').style.background = '#f59e0b';
+        }
+
+        // Intentar sincronizar si hay internet
+        if (navigator.onLine && SERVIDOR) {
+            setTimeout(function(){ sincronizarDatos(true); }, 500);
+        }
+    } catch(e) {
+        mostrarToast('Error al importar: '+e.message, 'err');
+    }
+}
+
+// ── HISTORIAL DEL DIA ────────────────────────────────────────
+var _historialData = [];
+var _detalleActual = null;
+
+async function abrirHistorial() {
+    document.getElementById('modal-historial').style.display = 'flex';
+    await cargarHistorial();
+}
+
+function cerrarHistorial() {
+    document.getElementById('modal-historial').style.display = 'none';
+}
+
+async function cargarHistorial() {
+    var lista = document.getElementById('hist-lista');
+    var resumen = document.getElementById('hist-resumen');
+    lista.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:2rem;">Cargando...</div>';
+
+    // Obtener ventas pendientes (offline) + ventas del dia si hay conexion
+    var pendientes = await dbGetAll('ventas_pendientes');
+    var hoy = new Date().toISOString().substr(0,10);
+
+    // Ventas pendientes de hoy
+    var ventasHoy = pendientes.filter(function(v) {
+        return v.fecha && v.fecha.substr(0,10) === hoy;
+    });
+
+    // Si hay conexion, obtener ventas sincronizadas de hoy
+    if (navigator.onLine && SERVIDOR) {
+        try {
+            var res = await fetch(SERVIDOR+'/gestion/custom/demipatipos/pos/ajax.php', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({action:'historial_dia', terminal:POS_TERM, fecha:hoy})
+            });
+            var d = await res.json();
+            if (d.ok) {
+                _historialData = d.ventas.concat(ventasHoy.map(function(v){
+                    return {ref:v.local_id, total:v.total, metodo:v.metodo,
+                        fecha:v.fecha, estado:'pendiente', items:v.items, offline:true,
+                        token:v.token_local||null};
+                }));
+            } else {
+                _historialData = ventasHoy.map(function(v){
+                    return {ref:v.local_id, total:v.total, metodo:v.metodo,
+                        fecha:v.fecha, estado:'pendiente', items:v.items, offline:true,
+                        token:v.token_local||null};
+                });
+            }
+        } catch(e) {
+            _historialData = ventasHoy.map(function(v){
+                return {ref:v.local_id, total:v.total, metodo:v.metodo,
+                    fecha:v.fecha, estado:'pendiente', items:v.items, offline:true,
+                    token:v.token_local||null};
+            });
+        }
+    } else {
+        _historialData = ventasHoy.map(function(v){
+            return {ref:v.local_id, total:v.total, metodo:v.metodo,
+                fecha:v.fecha, estado:'pendiente', items:v.items, offline:true,
+                token:v.token_local||null};
+        });
+    }
+
+    if (!_historialData.length) {
+        lista.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:2rem;font-size:13px;">No hay ventas registradas hoy.</div>';
+        resumen.textContent = '0 ventas — 0.00 CUP';
+        return;
+    }
+
+    var totalDia = _historialData.reduce(function(s,v){ return s+parseFloat(v.total||0); }, 0);
+    resumen.textContent = _historialData.length+' venta(s) — '+totalDia.toFixed(2)+' CUP';
+
+    var metodos = {CASH:'Efectivo',TB:'Transf.',PL:'P.Linea',CB:'Tarjeta'};
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<tr style="background:#f8faff;"><th style="padding:6px 8px;text-align:left;color:#6b7280;border-bottom:2px solid #e5e7eb;">Factura</th>'
+          + '<th style="padding:6px 8px;text-align:left;color:#6b7280;border-bottom:2px solid #e5e7eb;">Hora</th>'
+          + '<th style="padding:6px 8px;text-align:center;color:#6b7280;border-bottom:2px solid #e5e7eb;">Metodo</th>'
+          + '<th style="padding:6px 8px;text-align:right;color:#6b7280;border-bottom:2px solid #e5e7eb;">Total</th>'
+          + '<th style="padding:6px 8px;text-align:center;color:#6b7280;border-bottom:2px solid #e5e7eb;">Estado</th>'
+          + '<th style="padding:6px 8px;border-bottom:2px solid #e5e7eb;"></th></tr>';
+
+    _historialData.forEach(function(v, idx) {
+        var hora = v.fecha ? v.fecha.substr(11,5) : '-';
+        var estado = v.offline
+            ? '<span style="background:#fef9c3;color:#854d0e;border-radius:10px;padding:1px 7px;font-size:10px;">Pendiente</span>'
+            : '<span style="background:#dcfce7;color:#16a34a;border-radius:10px;padding:1px 7px;font-size:10px;">Sincronizada</span>';
+        html += '<tr style="border-bottom:1px solid #f3f4f6;cursor:pointer;" onclick="verDetalleHist('+idx+')">'
+            + '<td style="padding:7px 8px;font-weight:600;color:#1a2a5e;">'+v.ref+'</td>'
+            + '<td style="padding:7px 8px;color:#6b7280;">'+hora+'</td>'
+            + '<td style="padding:7px 8px;text-align:center;">'+(metodos[v.metodo]||v.metodo)+'</td>'
+            + '<td style="padding:7px 8px;text-align:right;font-weight:700;">'+parseFloat(v.total).toFixed(2)+' CUP</td>'
+            + '<td style="padding:7px 8px;text-align:center;">'+estado+'</td>'
+            + '<td style="padding:7px 8px;"><button onclick="event.stopPropagation();verDetalleHist('+idx+')" style="background:#1a3a8f;color:white;border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">Ver</button></td>'
+            + '</tr>';
+    });
+    html += '</table>';
+    lista.innerHTML = html;
+}
+
+function verDetalleHist(idx) {
+    var v = _historialData[idx];
+    if (!v) return;
+    _detalleActual = v;
+    var metodos = {CASH:'Efectivo',TB:'Transferencia',PL:'Pago en Linea',CB:'Tarjeta'};
+    var rows = '';
+    (v.items||[]).forEach(function(i){
+        rows += '<tr><td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;">'+i.ref.replace(/_/g,' ')+'</td>'
+            + '<td style="padding:5px 6px;text-align:center;border-bottom:1px solid #f3f4f6;">'+i.qty+'</td>'
+            + '<td style="padding:5px 6px;text-align:right;border-bottom:1px solid #f3f4f6;">'+(parseFloat(i.precio)*parseFloat(i.qty)).toFixed(2)+'</td></tr>';
+    });
+    var html = '<div style="font-size:12px;color:#374151;">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px;background:#f8faff;padding:10px;border-radius:8px;">'
+        + '<div><b>Factura:</b> '+v.ref+'</div>'
+        + '<div><b>Fecha:</b> '+(v.fecha||'-')+'</div>'
+        + '<div><b>Metodo:</b> '+(metodos[v.metodo]||v.metodo)+'</div>'
+        + (v.cajero?'<div><b>Cajero:</b> '+v.cajero+'</div>':'')
+        + '</div>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">'
+        + '<tr style="background:#1a3a8f;color:white;"><th style="padding:5px 6px;text-align:left;">Producto</th><th style="padding:5px 6px;text-align:center;">Cant.</th><th style="padding:5px 6px;text-align:right;">Total</th></tr>'
+        + rows + '</table>'
+        + '<table style="width:100%;font-size:12px;">'
+        + '<tr><td>Subtotal</td><td style="text-align:right;">'+parseFloat(v.subtotal||v.total).toFixed(2)+' CUP</td></tr>';
+    if (v.descuento > 0) html += '<tr style="color:#cc2936;"><td>Descuento</td><td style="text-align:right;">-'+parseFloat(v.descuento).toFixed(2)+' CUP</td></tr>';
+    html += '<tr style="font-weight:700;font-size:14px;border-top:2px solid #1a3a8f;"><td>TOTAL</td><td style="text-align:right;color:#1a3a8f;">'+parseFloat(v.total).toFixed(2)+' CUP</td></tr>'
+        + '</table>';
+    if (v.token) html += '<div style="background:#1a3a8f;border-radius:8px;padding:10px;margin-top:10px;text-align:center;">'
+        + '<div style="color:rgba(255,255,255,0.7);font-size:9px;text-transform:uppercase;">Codigo de puntos</div>'
+        + '<div style="color:white;font-size:22px;font-weight:900;letter-spacing:0.2em;">'+v.token+'</div></div>';
+    html += '</div>';
+    document.getElementById('detalle-hist-content').innerHTML = html;
+    document.getElementById('modal-detalle-hist').style.display = 'flex';
+}
+
+function cerrarDetalleHist() {
+    document.getElementById('modal-detalle-hist').style.display = 'none';
+}
+
+function imprimirDesdeHistorial() {
+    if (!_detalleActual) return;
+    var v = _detalleActual;
+    _printData = {
+        token: v.token||null, ref: v.ref,
+        fecha: v.fecha||'',
+        terminal: CONFIG['TAKEPOS_TERMINAL_NAME_'+POS_TERM]||'Terminal '+POS_TERM,
+        ubicacion: CONFIG['DEMIPATIPOS_TERMINAL_UBICACION_'+POS_TERM]||'',
+        cajero: v.cajero || CONFIG['_cajero_nombre']||'',
+        metodo: v.metodo, items: v.items||[],
+        subtotal: parseFloat(v.subtotal||v.total),
+        descuento: parseFloat(v.descuento||0),
+        credito: 0, total: parseFloat(v.total),
+        afiliado: null
+    };
+    cerrarDetalleHist();
+    imprimirRecibo();
+}
+
+function toggleMenuMas(e) {
+    if (e) e.stopPropagation();
+    var m = document.getElementById('menu-mas');
+    m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+}
+document.addEventListener('click', function(e) {
+    var m = document.getElementById('menu-mas');
+    if (m && m.style.display === 'block' && !m.contains(e.target) && e.target.id !== 'menu-mas') {
+        m.style.display = 'none';
+    }
+});
+
+function cerrarPOS() { if (confirm('¿Cerrar el POS?')) window.close(); }
+
+// ══ MOBILE + FUNCIONES ═══════════════════════════════════════
+var _vista='productos';
+function toggleVista(){var l=document.getElementById('bv-label'),l2=document.getElementById('bv-label2');if(_vista==='productos'){_vista='carrito';if(l)l.textContent='📦 Ver Productos';if(l2)l2.textContent='📦 Ver Productos';document.body.className='vista-carrito';}else{_vista='productos';if(l)l.textContent='🛒 Ver Carrito';if(l2)l2.textContent='🛒 Ver Carrito';document.body.className='vista-productos';}}
+window.addEventListener('resize',function(){if(window.innerWidth>480){document.body.className='';_vista='productos';}});
+function mostrarToast(msg){var t=document.getElementById('pos-toast');if(!t){t=document.createElement('div');t.id='pos-toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(26,58,143,0.95);color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:99998;white-space:nowrap;';document.body.appendChild(t);}t.textContent=msg;t.style.display='block';t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.style.display='none';},300);},3000);}
+document.addEventListener('click',function(e){var menu=document.getElementById('menu-mas');var btn=e.target.closest('[onclick*="toggleMenuMas"]');if(menu&&!btn&&!menu.contains(e.target))menu.style.display='none';});
+
+</script>
+</body>
+</html>
