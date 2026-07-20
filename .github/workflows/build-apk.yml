@@ -46,8 +46,11 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
+      - name: Renombrar APK a POS.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/POS.apk
+
       - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: demipati-pos-offline-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: POS
+          path: android/app/build/outputs/apk/debug/POS.apk
