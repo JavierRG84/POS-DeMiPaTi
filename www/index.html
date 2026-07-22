@@ -46,7 +46,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex
 .prod-name{font-size:10px;font-weight:700;color:#1a2a5e;line-height:1.3;margin-bottom:3px;}
 .prod-price{font-size:13px;font-weight:800;color:var(--navy);}
 .prod-agotado{font-size:9px;color:#cc2936;font-weight:700;text-transform:uppercase;margin-top:2px;}
-.panel-carrito{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:white;border-left:2px solid var(--border);}
+.panel-carrito{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:white;border-left:2px solid var(--border);position:relative;overflow:hidden;}
 .carrito-header{padding:8px 12px;background:var(--navy);color:white;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
 .carrito-items{flex:1;overflow-y:auto;padding:5px;}
 .carrito-empty{text-align:center;color:var(--gray);padding:1.5rem;font-size:12px;}
@@ -58,7 +58,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex
 .ci-qty span{font-size:12px;font-weight:700;min-width:18px;text-align:center;}
 .ci-total{font-size:11px;font-weight:700;color:var(--navy);min-width:52px;text-align:right;}
 .ci-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:1px 3px;}
-.carrito-totales{padding:8px 12px;border-top:2px solid var(--border);background:#f9fafb;}
+.carrito-totales{padding:8px 12px 64px;border-top:2px solid var(--border);background:#f9fafb;}
 .total-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--gray);}
 .total-row.main{font-size:15px;font-weight:700;color:#1a2a5e;padding-top:5px;border-top:1px solid var(--border);margin-top:3px;}
 .total-row.desc{color:var(--red);}
@@ -116,6 +116,18 @@ body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex
 .desc-esp-btn:hover{background:var(--navy);color:white;border-color:var(--navy);}
 .desc-esp-display{flex:1;text-align:center;font-size:18px;font-weight:800;color:var(--red);min-width:50px;}
 .desc-esp-reset{font-size:10px;color:var(--gray);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;}
+/* ══ VENTANA DESLIZABLE (pago, afiliado, descuento, cobrar) ═══ */
+.carrito-sheet{position:absolute;left:0;right:0;bottom:0;background:white;border-top:2px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -6px 18px rgba(0,0,0,0.14);transform:translateY(calc(100% - 56px));transition:transform 0.28s cubic-bezier(.4,0,.2,1);z-index:50;max-height:78%;display:flex;flex-direction:column;touch-action:none;}
+.carrito-sheet.dragging{transition:none;}
+.carrito-sheet.open{transform:translateY(0);}
+.sheet-handle{padding:8px 14px 10px;cursor:pointer;flex-shrink:0;user-select:none;}
+.sheet-grip{width:40px;height:5px;background:var(--border);border-radius:3px;margin:0 auto 8px;}
+.sheet-peek{display:flex;justify-content:space-between;align-items:center;}
+.sheet-peek-label{font-size:12px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:6px;}
+.sheet-peek-chevron{font-size:10px;color:var(--gray);transition:transform 0.28s;}
+.carrito-sheet.open .sheet-peek-chevron{transform:rotate(180deg);}
+.sheet-peek-total{font-size:15px;font-weight:800;color:var(--navy);}
+.sheet-content{overflow-y:auto;padding-bottom:6px;}
 /* ══ MOBILE ══════════════════════════════════════════════════ */
 .btn-vista{display:none;}
 @media(max-width:480px){
@@ -138,6 +150,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex
   .prod-name{font-size:9px!important;}
   .prod-price{font-size:10px!important;}
   .panel-carrito{width:100%!important;border-left:none!important;}
+  .carrito-sheet{bottom:46px;}
   body.vista-productos .area-izquierda{display:flex!important;flex:1;flex-direction:column;}
   body.vista-productos #panel-carrito{display:none!important;}
   body.vista-carrito .area-izquierda{display:none!important;}
@@ -264,34 +277,46 @@ body{font-family:Arial,sans-serif;background:var(--bg);height:100vh;display:flex
   <div class="total-row main"><span>TOTAL</span><span id="tot-total">0.00 CUP</span></div>
     </div>
 
-    <div class="afil-section">
-      <label>Afiliado (opcional)</label>
-      <div class="afil-row">
-        <input type="text" class="afil-input" id="af-codigo" placeholder="Codigo DMP o email">
-        <input type="password" class="afil-input" id="af-pin" placeholder="PIN" style="max-width:60px;">
-        <button class="btn-af btn-af-ok" onclick="buscarAfiliadoLocal()">OK</button>
-        <button class="btn-af btn-af-x" onclick="limpiarAfiliado()">X</button>
+    <!-- VENTANA DESLIZABLE: afiliado, descuento especial, pago, cobrar -->
+    <div class="carrito-sheet open" id="carrito-sheet">
+      <div class="sheet-handle" id="sheet-handle">
+        <div class="sheet-grip"></div>
+        <div class="sheet-peek">
+          <span class="sheet-peek-label">💳 Pago y cobro <span class="sheet-peek-chevron">▲</span></span>
+          <span class="sheet-peek-total" id="sheet-peek-total">0.00 CUP</span>
+        </div>
       </div>
-      <div class="afil-info" id="af-info"></div>
-    </div>
-    <!-- DESCUENTO ESPECIAL -->
-  <div class="desc-esp-wrap">
-    <div class="desc-esp-header">🏷️ Descuento especial &nbsp;<button class="desc-esp-reset" onclick="setDescEsp(0)">Quitar</button></div>
-    <div class="desc-esp-controls">
-      <button class="desc-esp-btn" onclick="descEspMenos()">−</button>
-      <div class="desc-esp-display" id="desc-esp-display">0%</div>
-      <button class="desc-esp-btn" onclick="descEspMas()">+</button>
-    </div>
-  </div>
+      <div class="sheet-content">
+        <div class="afil-section">
+          <label>Afiliado (opcional)</label>
+          <div class="afil-row">
+            <input type="text" class="afil-input" id="af-codigo" placeholder="Codigo DMP o email">
+            <input type="password" class="afil-input" id="af-pin" placeholder="PIN" style="max-width:60px;">
+            <button class="btn-af btn-af-ok" onclick="buscarAfiliadoLocal()">OK</button>
+            <button class="btn-af btn-af-x" onclick="limpiarAfiliado()">X</button>
+          </div>
+          <div class="afil-info" id="af-info"></div>
+        </div>
+        <!-- DESCUENTO ESPECIAL -->
+      <div class="desc-esp-wrap">
+        <div class="desc-esp-header">🏷️ Descuento especial &nbsp;<button class="desc-esp-reset" onclick="setDescEsp(0)">Quitar</button></div>
+        <div class="desc-esp-controls">
+          <button class="desc-esp-btn" onclick="descEspMenos()">−</button>
+          <div class="desc-esp-display" id="desc-esp-display">0%</div>
+          <button class="desc-esp-btn" onclick="descEspMas()">+</button>
+        </div>
+      </div>
 
-  <div class="metodos-pago">
-      <label>Metodo de pago</label>
-      <div class="metodos-grid" id="metodos-grid"></div>
+      <div class="metodos-pago">
+          <label>Metodo de pago</label>
+          <div class="metodos-grid" id="metodos-grid"></div>
+        </div>
+        <button class="btn-cobrar" id="btn-cobrar" onclick="abrirConfirmacion()" disabled>
+          Cobrar
+          <small id="btn-info">Añade productos al carrito</small>
+        </button>
+      </div>
     </div>
-    <button class="btn-cobrar" id="btn-cobrar" onclick="abrirConfirmacion()" disabled>
-      Cobrar
-      <small id="btn-info">Añade productos al carrito</small>
-    </button>
     <button class="btn-vista" onclick="toggleVista()"><span id="bv-label2">📦 Ver Productos</span><span class="bv-badge" id="bv-badge2">0</span></button>
   </div>
 </div>
@@ -840,6 +865,8 @@ function actualizarTotales() {
     var total = subConDescEsp - desc - cred;
     document.getElementById('tot-sub').textContent   = sub.toFixed(2) + ' CUP';
     document.getElementById('tot-total').textContent = total.toFixed(2) + ' CUP';
+    var peekTotal = document.getElementById('sheet-peek-total');
+    if (peekTotal) peekTotal.textContent = total.toFixed(2) + ' CUP';
     var rowDescEsp = document.getElementById('row-desc-esp');
     if (rowDescEsp) { if(descEspMonto>0){rowDescEsp.style.display='';var l=document.getElementById('lbl-desc-esp');if(l)l.textContent='Desc. especial (-'+descEsp+'%)';document.getElementById('tot-desc-esp').textContent='-'+descEspMonto.toFixed(2)+' CUP';}else rowDescEsp.style.display='none'; }
     var rowDesc = document.getElementById('row-desc');
@@ -1599,6 +1626,43 @@ function toggleVista(){var l=document.getElementById('bv-label'),l2=document.get
 window.addEventListener('resize',function(){if(window.innerWidth>480){document.body.className='';_vista='productos';}});
 function mostrarToast(msg){var t=document.getElementById('pos-toast');if(!t){t=document.createElement('div');t.id='pos-toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(26,58,143,0.95);color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:99998;white-space:nowrap;';document.body.appendChild(t);}t.textContent=msg;t.style.display='block';t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.style.display='none';},300);},3000);}
 document.addEventListener('click',function(e){var menu=document.getElementById('menu-mas');var btn=e.target.closest('[onclick*="toggleMenuMas"]');if(menu&&!btn&&!menu.contains(e.target))menu.style.display='none';});
+
+// ══ VENTANA DESLIZABLE DEL CARRITO (manija) ═══════════════════
+(function(){
+  var sheet = document.getElementById('carrito-sheet');
+  var handle = document.getElementById('sheet-handle');
+  if (!sheet || !handle) return;
+  var dragging = false, startY = 0, startTranslate = 0, moved = false;
+  function sheetHeight(){ return sheet.offsetHeight || 1; }
+  function currentTranslateRatio(){ return sheet.classList.contains('open') ? 0 : 1; }
+  function setOpen(open){ sheet.classList.toggle('open', open); sheet.style.transform=''; }
+  function toggle(){ setOpen(!sheet.classList.contains('open')); }
+  function onDown(clientY){ dragging = true; moved = false; startY = clientY; startTranslate = currentTranslateRatio() * sheetHeight(); sheet.classList.add('dragging'); }
+  function onMove(clientY){
+    if (!dragging) return;
+    var delta = clientY - startY;
+    if (Math.abs(delta) > 4) moved = true;
+    var h = sheetHeight();
+    var peek = 56;
+    var next = Math.min(Math.max(startTranslate + delta, 0), h - peek);
+    sheet.style.transform = 'translateY(' + next + 'px)';
+  }
+  function onUp(clientY){
+    if (!dragging) return;
+    dragging = false;
+    sheet.classList.remove('dragging');
+    sheet.style.transform = '';
+    var h = sheetHeight();
+    var delta = clientY - startY;
+    var openness = (startTranslate + delta) / h;
+    if (!moved) { toggle(); return; }
+    setOpen(openness < 0.5);
+  }
+  handle.addEventListener('pointerdown', function(e){ handle.setPointerCapture && handle.setPointerCapture(e.pointerId); onDown(e.clientY); });
+  handle.addEventListener('pointermove', function(e){ onMove(e.clientY); });
+  handle.addEventListener('pointerup',   function(e){ onUp(e.clientY); });
+  handle.addEventListener('pointercancel', function(e){ dragging=false; sheet.classList.remove('dragging'); sheet.style.transform=''; });
+})();
 
 </script>
 </body>
