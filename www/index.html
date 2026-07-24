@@ -676,6 +676,18 @@ function iniciarPOS(d) {
     var root_cats = ALL_CATS.filter(function(c){ return parseInt(c.fk_parent) === root_id; });
     if (!root_cats.length) root_cats = ALL_CATS.filter(function(c){ return !c.fk_parent || parseInt(c.fk_parent)===0; });
 
+    // Categorias raiz adicionales que no cuelgan del arbol de productos
+    // (ej. "Servicios", separada para no afectar la web publica). Mismo criterio que index.php.
+    var extra_root_conf = CONFIG['DEMIPATIPOS_EXTRA_ROOT_CATEGORIES'];
+    var extra_root_ids = String(extra_root_conf || '226').split(',').map(function(s){ return parseInt(s.trim()); }).filter(function(n){ return !isNaN(n); });
+    extra_root_ids.forEach(function(eid){
+        var ya_esta = root_cats.some(function(rc){ return parseInt(rc.rowid) === eid; });
+        if (!ya_esta) {
+            var extraCat = ALL_CATS.find(function(c){ return parseInt(c.rowid) === eid; });
+            if (extraCat) root_cats.push(extraCat);
+        }
+    });
+
     var grid = document.getElementById('grid-l1');
     grid.innerHTML = '';
     root_cats.forEach(function(cat) {
